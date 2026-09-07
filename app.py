@@ -1396,9 +1396,561 @@ with preview:
             <div class="cv-main">
 
 
-                <div class="cv-name">
+                                <div class="cv-name">
 
                     {esc(st.session_state.name)
                     or "YOUR NAME"}
 
-                
+                </div>
+
+
+                <div class="cv-role">
+
+                    {esc(st.session_state.role)
+                    or "PROFESSIONAL TITLE"}
+
+                </div>
+
+
+                <!-- PROFILE -->
+
+                {
+                    f'''
+                    <div class="main-section">
+                        PROFILE
+                    </div>
+
+                    <div class="main-text">
+                        {esc(st.session_state.summary)}
+                    </div>
+                    '''
+                    if st.session_state.summary.strip()
+                    else ""
+                }
+
+
+                <!-- EXPERIENCE -->
+
+                {
+                    render_main_section(
+                        "Experience",
+                        st.session_state.experience
+                    )
+                }
+
+
+                <!-- EDUCATION -->
+
+                {
+                    render_main_section(
+                        "Education",
+                        st.session_state.education
+                    )
+                }
+
+
+                <!-- PROJECTS -->
+
+                {
+                    render_main_section(
+                        "Projects",
+                        st.session_state.projects
+                    )
+                }
+
+
+            </div>
+
+
+        </div>
+
+        """,
+
+        unsafe_allow_html=True
+    )
+
+
+# =========================================================
+# PDF GENERATOR
+# =========================================================
+
+def generate_pdf():
+
+    buffer = BytesIO()
+
+
+    document = SimpleDocTemplate(
+
+        buffer,
+
+        pagesize=A4,
+
+        rightMargin=18 * mm,
+
+        leftMargin=18 * mm,
+
+        topMargin=15 * mm,
+
+        bottomMargin=15 * mm
+    )
+
+
+    styles = getSampleStyleSheet()
+
+
+    title_style = ParagraphStyle(
+
+        "CVTitle",
+
+        parent=styles["Heading1"],
+
+        fontSize=24,
+
+        leading=28,
+
+        textColor=colors.HexColor("#162132"),
+
+        spaceAfter=4
+    )
+
+
+    role_style = ParagraphStyle(
+
+        "CVRole",
+
+        parent=styles["Normal"],
+
+        fontSize=11,
+
+        textColor=colors.HexColor(accent),
+
+        spaceAfter=14
+    )
+
+
+    section_style = ParagraphStyle(
+
+        "CVSection",
+
+        parent=styles["Heading2"],
+
+        fontSize=13,
+
+        leading=16,
+
+        textColor=colors.HexColor("#162132"),
+
+        spaceBefore=12,
+
+        spaceAfter=8
+    )
+
+
+    text_style = ParagraphStyle(
+
+        "CVText",
+
+        parent=styles["Normal"],
+
+        fontSize=9.5,
+
+        leading=14,
+
+        textColor=colors.HexColor("#374151"),
+
+        spaceAfter=5
+    )
+
+
+    meta_style = ParagraphStyle(
+
+        "CVMeta",
+
+        parent=styles["Normal"],
+
+        fontSize=9,
+
+        leading=12,
+
+        textColor=colors.HexColor(accent),
+
+        spaceAfter=5
+    )
+
+
+    story = []
+
+
+    # -----------------------------------------------------
+    # PHOTO
+    # -----------------------------------------------------
+
+    if st.session_state.photo:
+
+        try:
+
+            photo_buffer = BytesIO(
+                st.session_state.photo
+            )
+
+
+            photo = RLImage(
+
+                photo_buffer,
+
+                width=38 * mm,
+
+                height=38 * mm
+            )
+
+
+            story.append(photo)
+
+            story.append(
+                Spacer(
+                    1,
+                    5 * mm
+                )
+            )
+
+        except:
+
+            pass
+
+
+    # -----------------------------------------------------
+    # NAME
+    # -----------------------------------------------------
+
+    name = (
+        esc(st.session_state.name)
+        or "YOUR NAME"
+    )
+
+
+    role = (
+        esc(st.session_state.role)
+        or "PROFESSIONAL TITLE"
+    )
+
+
+    story.append(
+
+        Paragraph(
+
+            name.upper(),
+
+            title_style
+        )
+    )
+
+
+    story.append(
+
+        Paragraph(
+
+            role,
+
+            role_style
+        )
+    )
+
+
+    # -----------------------------------------------------
+    # CONTACT
+    # -----------------------------------------------------
+
+    contact_items = []
+
+
+    if st.session_state.email.strip():
+
+        contact_items.append(
+            esc(
+                st.session_state.email
+            )
+        )
+
+
+    if st.session_state.phone.strip():
+
+        contact_items.append(
+            esc(
+                st.session_state.phone
+            )
+        )
+
+
+    if st.session_state.location.strip():
+
+        contact_items.append(
+            esc(
+                st.session_state.location
+            )
+        )
+
+
+    if st.session_state.linkedin.strip():
+
+        contact_items.append(
+            esc(
+                st.session_state.linkedin
+            )
+        )
+
+
+    if st.session_state.website.strip():
+
+        contact_items.append(
+            esc(
+                st.session_state.website
+            )
+        )
+
+
+    if contact_items:
+
+        story.append(
+
+            Paragraph(
+
+                " • ".join(
+                    contact_items
+                ),
+
+                text_style
+            )
+        )
+
+
+    # =====================================================
+    # PDF SECTION FUNCTION
+    # =====================================================
+
+    def add_simple_section(
+
+        title,
+
+        content
+    ):
+
+        if not content.strip():
+
+            return
+
+
+        story.append(
+
+            Paragraph(
+
+                title.upper(),
+
+                section_style
+            )
+        )
+
+
+        for line in content.splitlines():
+
+            line = line.strip()
+
+
+            if not line:
+
+                continue
+
+
+            story.append(
+
+                Paragraph(
+
+                    esc(
+                        line
+                    ),
+
+                    text_style
+                )
+            )
+
+
+    # -----------------------------------------------------
+    # SUMMARY
+    # -----------------------------------------------------
+
+    if st.session_state.summary.strip():
+
+        story.append(
+
+            Paragraph(
+
+                "PROFILE",
+
+                section_style
+            )
+        )
+
+
+        story.append(
+
+            Paragraph(
+
+                esc(
+                    st.session_state.summary
+                ),
+
+                text_style
+            )
+        )
+
+
+    # -----------------------------------------------------
+    # EXPERIENCE
+    # -----------------------------------------------------
+
+    add_simple_section(
+
+        "Experience",
+
+        st.session_state.experience
+    )
+
+
+    # -----------------------------------------------------
+    # EDUCATION
+    # -----------------------------------------------------
+
+    add_simple_section(
+
+        "Education",
+
+        st.session_state.education
+    )
+
+
+    # -----------------------------------------------------
+    # PROJECTS
+    # -----------------------------------------------------
+
+    add_simple_section(
+
+        "Projects",
+
+        st.session_state.projects
+    )
+
+
+    # -----------------------------------------------------
+    # SKILLS
+    # -----------------------------------------------------
+
+    add_simple_section(
+
+        "Skills",
+
+        st.session_state.skills
+    )
+
+
+    # -----------------------------------------------------
+    # LANGUAGES
+    # -----------------------------------------------------
+
+    add_simple_section(
+
+        "Languages",
+
+        st.session_state.languages
+    )
+
+
+    # -----------------------------------------------------
+    # CERTIFICATIONS
+    # -----------------------------------------------------
+
+    add_simple_section(
+
+        "Certifications",
+
+        st.session_state.certifications
+    )
+
+
+    document.build(
+        story
+    )
+
+
+    buffer.seek(
+        0
+    )
+
+
+    return buffer.getvalue()
+
+
+# =========================================================
+# DOWNLOAD SECTION
+# =========================================================
+
+st.divider()
+
+
+st.markdown(
+    "## 📥 Export Your Premium CV"
+)
+
+
+pdf_data = generate_pdf()
+
+
+safe_name = (
+
+    st.session_state.name
+    .strip()
+    .replace(
+        " ",
+        "_"
+    )
+
+    or
+
+    "Premium_CV"
+)
+
+
+st.download_button(
+
+    label="📄 Download Premium CV PDF",
+
+    data=pdf_data,
+
+    file_name=f"{safe_name}_CV.pdf",
+
+    mime="application/pdf",
+
+    use_container_width=True
+)
+
+
+# =========================================================
+# FOOTER
+# =========================================================
+
+st.markdown(
+
+    """
+    <div style="
+        text-align:center;
+        color:#64748b;
+        padding:30px;
+        font-size:12px;
+    ">
+
+        CV Automator PREMIUM •
+        Create • Preview • Export
+
+    </div>
+    """,
+
+    unsafe_allow_html=True
+)
