@@ -2089,47 +2089,749 @@ with preview:
 
                 {esc(st.session_state.role) or "PROFESSIONAL TITLE"}
 
+        c.drawString(
+            side_x,
+            side_y,
+            "SKILLS"
+        )
+
+        side_y -= 7 * mm
+
+        c.setFillColor(colors.white)
+        c.setFont(
+            "Helvetica",
+            8
+        )
+
+        skill_lines = [
+            x.strip()
+            for x in st.session_state.skills.splitlines()
+            if x.strip()
+        ]
+
+        for skill in skill_lines:
+
+            if "|" in skill:
+                skill_name = skill.split(
+                    "|",
+                    1
+                )[0].strip()
+            else:
+                skill_name = skill.strip()
+
+            if side_y < 20 * mm:
+                break
+
+            c.drawString(
+                side_x,
+                side_y,
+                skill_name[:35]
+            )
+
+            side_y -= 6 * mm
+
+
+    # Languages
+    if st.session_state.languages.strip():
+
+        side_y -= 6 * mm
+
+        if side_y > 30 * mm:
+
+            c.setFillColor(
+                colors.HexColor("#FFC107")
+            )
+
+            c.setFont(
+                "Helvetica-Bold",
+                10
+            )
+
+            c.drawString(
+                side_x,
+                side_y,
+                "LANGUAGES"
+            )
+
+            side_y -= 7 * mm
+
+            c.setFillColor(
+                colors.white
+            )
+
+            c.setFont(
+                "Helvetica",
+                8
+            )
+
+            for language in st.session_state.languages.splitlines():
+
+                language = language.strip()
+
+                if not language:
+                    continue
+
+                if side_y < 20 * mm:
+                    break
+
+                c.drawString(
+                    side_x,
+                    side_y,
+                    language[:35]
+                )
+
+                side_y -= 6 * mm
+
+
+    # Certifications
+    if st.session_state.certifications.strip():
+
+        side_y -= 6 * mm
+
+        if side_y > 30 * mm:
+
+            c.setFillColor(
+                colors.HexColor("#FFC107")
+            )
+
+            c.setFont(
+                "Helvetica-Bold",
+                10
+            )
+
+            c.drawString(
+                side_x,
+                side_y,
+                "CERTIFICATIONS"
+            )
+
+            side_y -= 7 * mm
+
+            c.setFillColor(
+                colors.white
+            )
+
+            c.setFont(
+                "Helvetica",
+                8
+            )
+
+            for certification in (
+                st.session_state.certifications
+                .splitlines()
+            ):
+
+                certification = certification.strip()
+
+                if not certification:
+                    continue
+
+                if side_y < 20 * mm:
+                    break
+
+                c.drawString(
+                    side_x,
+                    side_y,
+                    certification[:35]
+                )
+
+                side_y -= 6 * mm
+
+
+    c.save()
+
+    buffer.seek(0)
+
+    return buffer.getvalue()
+
+
+# =========================================================
+# HEADER
+# =========================================================
+
+st.markdown(
+    """
+    <div class="hero">
+
+        <h1>
+            CV Automator
+            <span style="color:#ffc107;">
+                PREMIUM
+            </span>
+        </h1>
+
+        <p>
+            Modern geometric CV •
+            Profile photo •
+            Live preview •
+            Professional PDF export
+        </p>
+
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+
+# =========================================================
+# SIDEBAR SETTINGS
+# =========================================================
+
+with st.sidebar:
+
+    st.header(
+        "🎨 CV Design"
+    )
+
+    accent = st.color_picker(
+        "Accent Color",
+        "#FFC107"
+    )
+
+    sidebar_color = st.color_picker(
+        "Sidebar Color",
+        "#151515"
+    )
+
+    st.divider()
+
+    st.caption(
+        "Modern Professional Template"
+    )
+
+
+# =========================================================
+# MAIN LAYOUT
+# =========================================================
+
+editor, preview = st.columns(
+    [0.85, 1.15],
+    gap="large"
+)
+
+
+# =========================================================
+# EDITOR
+# =========================================================
+
+with editor:
+
+    tabs = st.tabs([
+        "👤 Personal",
+        "🧠 About",
+        "💼 Experience",
+        "🎓 Education",
+        "🚀 Projects",
+        "🛠 Skills",
+        "📜 More"
+    ])
+
+
+    # PERSONAL
+    with tabs[0]:
+
+        st.subheader(
+            "Profile Picture"
+        )
+
+        uploaded = st.file_uploader(
+            "Upload Picture",
+            type=[
+                "jpg",
+                "jpeg",
+                "png",
+                "webp"
+            ]
+        )
+
+        if uploaded:
+
+            try:
+
+                image = Image.open(
+                    uploaded
+                ).convert(
+                    "RGB"
+                )
+
+                buffer = BytesIO()
+
+                image.save(
+                    buffer,
+                    format="JPEG",
+                    quality=95
+                )
+
+                st.session_state.photo = (
+                    buffer.getvalue()
+                )
+
+            except Exception as e:
+
+                st.error(
+                    f"Image error: {e}"
+                )
+
+
+        if st.session_state.photo:
+
+            st.image(
+                st.session_state.photo,
+                width=160
+            )
+
+            if st.button(
+                "🗑 Remove Picture"
+            ):
+
+                st.session_state.photo = None
+
+                st.rerun()
+
+
+        st.divider()
+
+
+        st.session_state.name = st.text_input(
+            "Full Name",
+            value=st.session_state.name,
+            placeholder="Muhammad Rehan Ahmed"
+        )
+
+
+        st.session_state.role = st.text_input(
+            "Professional Title",
+            value=st.session_state.role,
+            placeholder="Software Engineer"
+        )
+
+
+        st.session_state.email = st.text_input(
+            "Email",
+            value=st.session_state.email
+        )
+
+
+        st.session_state.phone = st.text_input(
+            "Phone",
+            value=st.session_state.phone
+        )
+
+
+        st.session_state.location = st.text_input(
+            "Location",
+            value=st.session_state.location
+        )
+
+
+        st.session_state.linkedin = st.text_input(
+            "LinkedIn",
+            value=st.session_state.linkedin
+        )
+
+
+        st.session_state.website = st.text_input(
+            "Portfolio / Website",
+            value=st.session_state.website
+        )
+
+
+    # ABOUT
+    with tabs[1]:
+
+        st.session_state.summary = st.text_area(
+            "Professional Summary",
+            value=st.session_state.summary,
+            height=250,
+            placeholder=(
+                "Write a short professional introduction "
+                "about yourself..."
+            )
+        )
+
+
+    # EXPERIENCE
+    with tabs[2]:
+
+        st.caption(
+            "Separate each experience with a blank line."
+        )
+
+        st.session_state.experience = st.text_area(
+            "Experience",
+            value=st.session_state.experience,
+            height=350,
+            placeholder="""Software Developer | ABC Company
+2025 - Present
+Developed automation tools
+Built modern web applications
+Improved system performance
+
+Freelance Developer
+2024 - Present
+Created professional websites
+Worked with multiple clients"""
+        )
+
+
+    # EDUCATION
+    with tabs[3]:
+
+        st.caption(
+            "Separate each education entry with a blank line."
+        )
+
+        st.session_state.education = st.text_area(
+            "Education",
+            value=st.session_state.education,
+            height=300,
+            placeholder="""BS Software Engineering | University Name
+2025 - Present
+Relevant coursework and achievements
+
+FSc Pre-Medical | College Name
+2023 - 2025
+Science and academic achievements"""
+        )
+
+
+    # PROJECTS
+    with tabs[4]:
+
+        st.caption(
+            "Separate each project with a blank line."
+        )
+
+        st.session_state.projects = st.text_area(
+            "Projects",
+            value=st.session_state.projects,
+            height=320,
+            placeholder="""CV Automator
+Python | Streamlit
+Built an automated professional CV generator
+
+AI Study Assistant
+Python | AI
+Created a personalized student study planner"""
+        )
+
+
+    # SKILLS
+    with tabs[5]:
+
+        st.info(
+            "One skill per line. "
+            "Optional format: Python | 90"
+        )
+
+        st.session_state.skills = st.text_area(
+            "Skills",
+            value=st.session_state.skills,
+            height=280,
+            placeholder="""Python | 90
+C++ | 80
+HTML | 95
+CSS | 90
+JavaScript | 75"""
+        )
+
+
+    # MORE
+    with tabs[6]:
+
+        st.session_state.languages = st.text_area(
+            "Languages",
+            value=st.session_state.languages,
+            height=150,
+            placeholder="""English
+Urdu"""
+        )
+
+
+        st.session_state.certifications = st.text_area(
+            "Certifications",
+            value=st.session_state.certifications,
+            height=150,
+            placeholder="""Python Programming
+Web Development"""
+        )
+
+
+# =========================================================
+# PREVIEW
+# =========================================================
+
+with preview:
+
+    st.markdown(
+        "### 👁️ Live CV Preview"
+    )
+
+
+    score_fields = [
+        st.session_state.name,
+        st.session_state.role,
+        st.session_state.email,
+        st.session_state.summary,
+        st.session_state.experience,
+        st.session_state.education,
+        st.session_state.projects,
+        st.session_state.skills
+    ]
+
+
+    completed = sum(
+        bool(
+            field.strip()
+        )
+        for field in score_fields
+    )
+
+
+    score = round(
+        completed
+        /
+        len(score_fields)
+        *
+        100
+    )
+
+
+    st.markdown(
+        f"""
+        <div class="score-card">
+
+            <div class="score-label">
+                CV COMPLETENESS
             </div>
 
+            <div class="score-number"
+                 style="color:{accent};">
+                {score}/100
+            </div>
 
-            {
-                f'''
-                <div class="main-section">
-                    ABOUT ME
-                </div>
-
-                <div class="summary-box">
-                    {esc(st.session_state.summary)}
-                </div>
-                '''
-                if st.session_state.summary.strip()
-                else ""
-            }
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 
-            {render_main_section(
-                "EDUCATION",
-                st.session_state.education
-            )}
+    # PHOTO
+    if st.session_state.photo:
+
+        encoded = base64.b64encode(
+            st.session_state.photo
+        ).decode()
+
+        photo_html = f"""
+        <img
+            class="profile-photo"
+            src="data:image/jpeg;base64,{encoded}"
+            style="
+                box-shadow:
+                0 0 0 5px {accent};
+            "
+        >
+        """
+
+    else:
+
+        photo_html = f"""
+        <div
+            class="profile-photo"
+            style="
+                background:#2a2a2a;
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                font-size:55px;
+                box-shadow:
+                0 0 0 5px {accent};
+            "
+        >
+            👤
+        </div>
+        """
 
 
-            {render_main_section(
-                "EXPERIENCE",
-                st.session_state.experience
-            )}
+    # CONTACT
+    contact_html = ""
+
+    contacts = [
+        ("✉", st.session_state.email),
+        ("☎", st.session_state.phone),
+        ("⌖", st.session_state.location),
+        ("in", st.session_state.linkedin),
+        ("⌘", st.session_state.website)
+    ]
 
 
-            {render_main_section(
-                "PROJECTS",
-                st.session_state.projects
-            )}
+    for icon, value in contacts:
 
+        if value.strip():
+
+            contact_html += f"""
+            <div class="sidebar-text">
+                <b>{icon}</b>
+                {esc(value)}
+            </div>
+            """
+
+
+    # MAIN SECTIONS
+    summary_html = ""
+
+    if st.session_state.summary.strip():
+
+        summary_html = f"""
+        <div class="main-section">
+            ABOUT ME
+        </div>
+
+        <div class="summary-box">
+            {esc(st.session_state.summary)}
+        </div>
+        """
+
+
+    education_html = render_main_section(
+        "Education",
+        st.session_state.education
+    )
+
+
+    experience_html = render_main_section(
+        "Experience",
+        st.session_state.experience
+    )
+
+
+    projects_html = render_main_section(
+        "Projects",
+        st.session_state.projects
+    )
+
+
+    languages_html = list_section(
+        "Languages",
+        st.session_state.languages
+    )
+
+
+    certifications_html = list_section(
+        "Certifications",
+        st.session_state.certifications
+    )
+
+
+    # FULL CV
+    cv_html = f"""
+    <style>
+
+    .cv-sidebar {{
+        background:{sidebar_color};
+    }}
+
+    .cv-sidebar::before {{
+        background:
+        linear-gradient(
+            135deg,
+            {accent},
+            #ff9800
+        );
+    }}
+
+    .cv-sidebar::after {{
+        background:{accent};
+    }}
+
+    .sidebar-role,
+    .sidebar-section {{
+        color:{accent};
+    }}
+
+    .sidebar-section {{
+        border-left-color:{accent};
+    }}
+
+    .skill-bar {{
+        background:{accent};
+    }}
+
+    .main-section {{
+        border-bottom-color:{accent};
+    }}
+
+    .experience-item {{
+        border-left-color:{accent};
+    }}
+
+    .experience-meta {{
+        color:{accent};
+    }}
+
+    .cv-role {{
+        color:{accent};
+    }}
+
+    </style>
+
+
+    <div class="cv-wrapper">
+
+
+        <!-- LEFT SIDEBAR -->
+
+        <div class="cv-sidebar">
+
+            {photo_html}
+
+            <div class="sidebar-name">
+                {esc(st.session_state.name) or "YOUR NAME"}
+            </div>
+
+            <div class="sidebar-role">
+                {esc(st.session_state.role) or "PROFESSIONAL TITLE"}
+            </div>
+
+            <div class="sidebar-section">
+                CONTACT
+            </div>
+
+            {contact_html}
+
+            {skill_html(accent)}
+
+            {languages_html}
+
+            {certifications_html}
 
         </div>
 
 
-    </div>
+        <!-- RIGHT SIDE -->
 
+        <div class="cv-main">
+
+            <div class="cv-name">
+                {esc(st.session_state.name) or "YOUR NAME"}
+            </div>
+
+            <div class="cv-role">
+                {esc(st.session_state.role) or "PROFESSIONAL TITLE"}
+            </div>
+
+            {summary_html}
+
+            {education_html}
+
+            {experience_html}
+
+            {projects_html}
+
+        </div>
+
+    </div>
     """
 
 
@@ -2143,45 +2845,41 @@ with preview:
 
 
     # =====================================================
-    # PDF EXPORT
+    # PDF DOWNLOAD
     # =====================================================
 
     st.markdown(
-        "### 📥 Export"
+        "### 📥 Download"
     )
 
 
     if st.button(
-        "⚙ Generate Professional PDF"
+        "Generate Professional PDF",
+        use_container_width=True
     ):
 
-        st.session_state.pdf_data = (
-            make_pdf()
-        )
+        try:
 
+            pdf_data = make_pdf()
 
-    if (
-        "pdf_data"
-        in st.session_state
-    ):
-
-        st.download_button(
-            label="⬇ Download CV PDF",
-            data=st.session_state.pdf_data,
-            file_name=(
-                (
+            st.download_button(
+                label="⬇️ Download CV PDF",
+                data=pdf_data,
+                file_name=(
                     st.session_state.name
-                    or "Professional_CV"
-                )
-                .replace(
-                    " ",
-                    "_"
-                )
-                + ".pdf"
-            ),
-            mime="application/pdf",
-            use_container_width=True
-        )
+                    .strip()
+                    .replace(" ", "_")
+                    or "CV"
+                ) + ".pdf",
+                mime="application/pdf",
+                use_container_width=True
+            )
+
+        except Exception as e:
+
+            st.error(
+                f"PDF generation failed: {e}"
+            )
 
 
 # =========================================================
@@ -2190,15 +2888,15 @@ with preview:
 
 st.markdown(
     """
-    <br>
-
-    <center style="color:#6b7280;">
-
+    <div style="
+        text-align:center;
+        color:#6b7280;
+        padding:30px 0 10px 0;
+        font-size:13px;
+    ">
         CV Automator Premium
-        •
-        Professional Resume Builder
-
-    </center>
+        • Modern CV Builder
+    </div>
     """,
     unsafe_allow_html=True
 )
