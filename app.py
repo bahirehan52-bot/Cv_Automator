@@ -8,19 +8,12 @@ import re
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import mm
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import (
-    SimpleDocTemplate,
-    Paragraph,
-    Spacer,
-    Table,
-    TableStyle,
-    Image as RLImage
-)
+from reportlab.pdfgen import canvas
+from reportlab.lib.utils import ImageReader
 
 
 # =========================================================
-# PAGE
+# PAGE CONFIG
 # =========================================================
 
 st.set_page_config(
@@ -38,7 +31,7 @@ st.markdown("""
 <style>
 
 .stApp {
-    background: #080b12;
+    background: #0b0f16;
 }
 
 .block-container {
@@ -47,7 +40,9 @@ st.markdown("""
 }
 
 
-/* HEADER */
+/* =====================================================
+   HEADER
+===================================================== */
 
 .hero {
     padding: 32px;
@@ -57,16 +52,16 @@ st.markdown("""
     background:
         radial-gradient(
             circle at 90% 20%,
-            rgba(245,158,11,.18),
+            rgba(255,193,7,.18),
             transparent 30%
         ),
         linear-gradient(
             135deg,
-            #101827,
-            #172033
+            #111827,
+            #1f2937
         );
 
-    border: 1px solid #29354b;
+    border: 1px solid #2d3748;
 }
 
 .hero h1 {
@@ -77,62 +72,100 @@ st.markdown("""
 
 .hero p {
     color: #9ca3af;
+    font-size: 16px;
 }
 
 
-/* SIDEBAR */
+/* =====================================================
+   SIDEBAR
+===================================================== */
 
 section[data-testid="stSidebar"] {
-    background: #0d1119;
+    background: #10141c;
 }
 
 
-/* BUTTONS */
+/* =====================================================
+   BUTTONS
+===================================================== */
 
 .stButton button,
 .stDownloadButton button {
 
     border-radius: 12px;
-    min-height: 46px;
-    font-weight: bold;
+    min-height: 48px;
+    font-weight: 700;
 }
 
 
-/* PREMIUM CARD */
+/* =====================================================
+   SCORE CARD
+===================================================== */
 
-.editor-card {
+.score-card {
 
-    background: #111827;
+    background:
+        linear-gradient(
+            135deg,
+            #151b26,
+            #232b3a
+        );
 
-    border: 1px solid #253047;
+    padding: 18px 22px;
 
-    padding: 20px;
+    border-radius: 16px;
 
-    border-radius: 18px;
+    border:
+        1px solid
+        #30394a;
 
-    margin-bottom: 15px;
+    margin-bottom: 20px;
 }
 
 
-/* CV PREVIEW */
+.score-label {
+
+    color: #9ca3af;
+
+    font-size: 11px;
+
+    letter-spacing: 2px;
+
+    font-weight: 700;
+}
+
+
+.score-number {
+
+    color: #ffc107;
+
+    font-size: 34px;
+
+    font-weight: 900;
+}
+
+
+/* =====================================================
+   CV WRAPPER
+===================================================== */
 
 .cv-wrapper {
 
-    background: #ffffff;
-
     width: 100%;
 
-    min-height: 1100px;
+    min-height: 1120px;
 
-    box-shadow:
-        0 25px 80px
-        rgba(0,0,0,.45);
+    background: white;
 
     display: flex;
 
-    border-radius: 8px;
+    position: relative;
 
     overflow: hidden;
+
+    box-shadow:
+        0 25px 80px
+        rgba(0,0,0,.55);
 
     font-family:
         Arial,
@@ -141,41 +174,96 @@ section[data-testid="stSidebar"] {
 }
 
 
-/* LEFT SIDEBAR */
+/* =====================================================
+   LEFT SIDE
+===================================================== */
 
 .cv-sidebar {
 
-    width: 34%;
+    width: 36%;
 
-    background: #162132;
+    min-height: 1120px;
+
+    background: #151515;
 
     color: white;
 
-    padding: 32px 22px;
+    padding: 28px 24px;
+
+    position: relative;
+
+    overflow: hidden;
 }
 
 
-/* RIGHT SIDE */
+.cv-sidebar::before {
 
-.cv-main {
+    content: "";
 
-    width: 66%;
+    position: absolute;
 
-    background: #ffffff;
+    top: 0;
 
-    color: #273142;
+    left: 0;
 
-    padding: 38px 34px;
+    width: 100%;
+
+    height: 270px;
+
+    background: linear-gradient(
+        135deg,
+        #ffc107,
+        #ff9800
+    );
+
+    clip-path:
+        polygon(
+            0 0,
+            100% 0,
+            100% 65%,
+            45% 100%,
+            0 75%
+        );
+
+    opacity: .95;
 }
 
 
-/* PHOTO */
+.cv-sidebar::after {
 
-.profile-photo {
+    content: "";
+
+    position: absolute;
+
+    bottom: 0;
+
+    left: 0;
 
     width: 130px;
 
-    height: 130px;
+    height: 180px;
+
+    background: #ffc107;
+
+    clip-path:
+        polygon(
+            0 35%,
+            100% 0,
+            100% 100%,
+            0 100%
+        );
+}
+
+
+/* =====================================================
+   PHOTO
+===================================================== */
+
+.profile-photo {
+
+    width: 155px;
+
+    height: 155px;
 
     border-radius: 50%;
 
@@ -184,190 +272,136 @@ section[data-testid="stSidebar"] {
     display: block;
 
     margin:
-        0 auto
-        22px auto;
+        10px auto
+        28px auto;
+
+    position: relative;
+
+    z-index: 3;
 
     border:
-        5px solid
-        #f59e0b;
+        7px solid
+        #151515;
+
+    box-shadow:
+        0 0 0 5px
+        #ffc107;
 }
 
 
-/* NAME */
-
-.cv-name {
-
-    font-size: 30px;
-
-    font-weight: 900;
-
-    line-height: 1.1;
-
-    color: #111827;
-
-    text-transform: uppercase;
-}
-
-
-/* ROLE */
-
-.cv-role {
-
-    font-size: 13px;
-
-    color: #f59e0b;
-
-    font-weight: 700;
-
-    margin-top: 8px;
-
-    letter-spacing: 1px;
-}
-
-
-/* SIDEBAR NAME */
+/* =====================================================
+   SIDEBAR NAME
+===================================================== */
 
 .sidebar-name {
 
+    position: relative;
+
+    z-index: 3;
+
     text-align: center;
 
-    font-size: 21px;
+    font-size: 22px;
 
-    font-weight: 800;
+    font-weight: 900;
 
-    margin-bottom: 4px;
+    margin-top: 10px;
+
+    color: white;
 }
 
 
 .sidebar-role {
 
+    position: relative;
+
+    z-index: 3;
+
     text-align: center;
 
-    color: #f59e0b;
+    color: #ffc107;
 
     font-size: 11px;
 
-    margin-bottom: 28px;
+    font-weight: 700;
+
+    letter-spacing: 1px;
+
+    margin-bottom: 30px;
 }
 
 
-/* SECTION TITLE */
+/* =====================================================
+   SIDEBAR SECTION
+===================================================== */
 
 .sidebar-section {
 
-    margin-top: 28px;
+    position: relative;
 
-    font-size: 11px;
+    z-index: 3;
 
-    font-weight: 900;
-
-    letter-spacing: 2px;
-
-    color: #f59e0b;
-
-    border-bottom:
-        1px solid
-        rgba(255,255,255,.2);
-
-    padding-bottom: 8px;
-
-    margin-bottom: 12px;
-}
-
-
-.main-section {
-
-    font-size: 13px;
-
-    font-weight: 900;
-
-    letter-spacing: 2px;
-
-    color: #162132;
-
-    border-bottom:
-        2px solid
-        #f59e0b;
-
-    padding-bottom: 7px;
-
-    margin-top: 25px;
+    margin-top: 30px;
 
     margin-bottom: 14px;
+
+    font-size: 14px;
+
+    font-weight: 900;
+
+    letter-spacing: 1.5px;
+
+    color: #ffc107;
+
+    border-left:
+        5px solid
+        #ffc107;
+
+    padding-left: 10px;
 }
 
-
-/* TEXT */
 
 .sidebar-text {
 
-    font-size: 10px;
+    position: relative;
+
+    z-index: 3;
+
+    font-size: 11px;
+
+    color: #e5e7eb;
 
     line-height: 1.7;
 
-    color: #d1d5db;
+    margin-bottom: 9px;
 
-    margin-bottom: 8px;
+    word-break: break-word;
 }
 
 
-.main-text {
-
-    font-size: 10px;
-
-    line-height: 1.7;
-
-    color: #475569;
-}
-
-
-/* EXPERIENCE */
-
-.experience-item {
-
-    margin-bottom: 20px;
-}
-
-
-.experience-title {
-
-    font-size: 12px;
-
-    font-weight: 800;
-
-    color: #111827;
-}
-
-
-.experience-meta {
-
-    font-size: 9px;
-
-    color: #f59e0b;
-
-    margin:
-        4px 0
-        7px 0;
-
-    font-weight: 700;
-}
-
-
-/* SKILLS */
+/* =====================================================
+   SKILLS
+===================================================== */
 
 .skill-item {
 
-    margin-bottom: 14px;
+    position: relative;
+
+    z-index: 3;
+
+    margin-bottom: 15px;
 }
 
 
 .skill-name {
 
-    font-size: 10px;
+    color: white;
 
-    color: #ffffff;
+    font-size: 11px;
 
-    margin-bottom: 5px;
+    margin-bottom: 6px;
+
+    font-weight: 600;
 }
 
 
@@ -375,12 +409,12 @@ section[data-testid="stSidebar"] {
 
     width: 100%;
 
-    height: 5px;
+    height: 7px;
 
     background:
-        rgba(255,255,255,.18);
+        rgba(255,255,255,.15);
 
-    border-radius: 5px;
+    border-radius: 10px;
 
     overflow: hidden;
 }
@@ -390,50 +424,266 @@ section[data-testid="stSidebar"] {
 
     height: 100%;
 
-    background: #f59e0b;
+    background: #ffc107;
 
-    border-radius: 5px;
+    border-radius: 10px;
 }
 
 
-.score-card {
+/* =====================================================
+   RIGHT SIDE
+===================================================== */
+
+.cv-main {
+
+    width: 64%;
+
+    min-height: 1120px;
 
     background:
         linear-gradient(
             135deg,
-            #111827,
-            #1f2937
+            #ffffff,
+            #f2f3f5
         );
 
-    padding: 16px;
+    color: #1b1b1b;
 
-    border-radius: 15px;
+    padding: 55px 45px;
 
-    border:
-        1px solid
-        #29354b;
+    position: relative;
 
-    margin-bottom: 15px;
+    overflow: hidden;
 }
 
 
-.score-label {
+/* TOP GEOMETRIC */
 
-    font-size: 10px;
+.cv-main::before {
 
-    color: #9ca3af;
+    content: "";
 
-    letter-spacing: 1px;
+    position: absolute;
+
+    top: 0;
+
+    right: 0;
+
+    width: 300px;
+
+    height: 110px;
+
+    background: #151515;
+
+    clip-path:
+        polygon(
+            20% 0,
+            100% 0,
+            100% 100%,
+            0 100%
+        );
 }
 
 
-.score-number {
+.cv-main::after {
 
-    font-size: 30px;
+    content: "";
 
-    color: #f59e0b;
+    position: absolute;
+
+    right: 0;
+
+    bottom: 0;
+
+    width: 260px;
+
+    height: 250px;
+
+    background: #151515;
+
+    clip-path:
+        polygon(
+            100% 0,
+            100% 100%,
+            0 100%
+        );
+}
+
+
+/* =====================================================
+   NAME
+===================================================== */
+
+.cv-name {
+
+    position: relative;
+
+    z-index: 2;
+
+    font-size: 42px;
 
     font-weight: 900;
+
+    color: #151515;
+
+    text-transform: uppercase;
+
+    letter-spacing: 1px;
+
+    margin-top: 15px;
+}
+
+
+.cv-role {
+
+    position: relative;
+
+    z-index: 2;
+
+    display: inline-block;
+
+    margin-top: 8px;
+
+    padding:
+        7px 15px;
+
+    background: #151515;
+
+    color: #ffc107;
+
+    font-size: 12px;
+
+    font-weight: 800;
+
+    letter-spacing: 1px;
+
+    clip-path:
+        polygon(
+            0 0,
+            100% 0,
+            92% 100%,
+            0 100%
+        );
+}
+
+
+/* =====================================================
+   MAIN SECTION
+===================================================== */
+
+.main-section {
+
+    position: relative;
+
+    z-index: 2;
+
+    margin-top: 38px;
+
+    margin-bottom: 18px;
+
+    font-size: 22px;
+
+    font-weight: 900;
+
+    color: #151515;
+
+    padding-bottom: 8px;
+
+    border-bottom:
+        4px solid
+        #ffc107;
+}
+
+
+.main-text {
+
+    position: relative;
+
+    z-index: 2;
+
+    color: #4b5563;
+
+    font-size: 12px;
+
+    line-height: 1.75;
+
+    margin-bottom: 7px;
+}
+
+
+/* =====================================================
+   EXPERIENCE
+===================================================== */
+
+.experience-item {
+
+    position: relative;
+
+    z-index: 2;
+
+    border-left:
+        3px solid
+        #ffc107;
+
+    padding-left: 18px;
+
+    margin-bottom: 24px;
+}
+
+
+.experience-title {
+
+    font-size: 14px;
+
+    font-weight: 900;
+
+    color: #151515;
+}
+
+
+.experience-meta {
+
+    color: #b77900;
+
+    font-size: 11px;
+
+    font-weight: 800;
+
+    margin:
+        5px 0
+        9px 0;
+}
+
+
+/* =====================================================
+   SUMMARY
+===================================================== */
+
+.summary-box {
+
+    position: relative;
+
+    z-index: 2;
+
+    color: #4b5563;
+
+    font-size: 12px;
+
+    line-height: 1.8;
+}
+
+
+@media (max-width: 850px) {
+
+    .cv-wrapper {
+        flex-direction: column;
+    }
+
+    .cv-sidebar,
+    .cv-main {
+        width: 100%;
+    }
+
 }
 
 </style>
@@ -445,35 +695,20 @@ section[data-testid="stSidebar"] {
 # =========================================================
 
 defaults = {
-
     "name": "",
-
     "role": "",
-
     "email": "",
-
     "phone": "",
-
     "location": "",
-
     "linkedin": "",
-
     "website": "",
-
     "summary": "",
-
     "experience": "",
-
     "education": "",
-
     "projects": "",
-
     "skills": "",
-
     "languages": "",
-
     "certifications": "",
-
     "photo": None
 }
 
@@ -481,7 +716,6 @@ defaults = {
 for key, value in defaults.items():
 
     if key not in st.session_state:
-
         st.session_state[key] = value
 
 
@@ -491,80 +725,61 @@ for key, value in defaults.items():
 
 def esc(text):
 
-    return html.escape(text or "")
+    return html.escape(str(text or ""))
 
 
 def parse_blocks(text):
 
-    if not text.strip():
-
+    if not text or not text.strip():
         return []
 
     return [
-
         [
             line.strip()
-
             for line in block.splitlines()
-
             if line.strip()
         ]
-
         for block in re.split(
             r"\n\s*\n",
             text.strip()
         )
-
         if block.strip()
     ]
 
 
 def render_main_section(title, content):
 
-    if not content.strip():
-
+    if not content or not content.strip():
         return ""
 
     result = f"""
-
     <div class="main-section">
-
-        {title.upper()}
-
+        {esc(title.upper())}
     </div>
-
     """
-
 
     for block in parse_blocks(content):
 
-        result += '<div class="experience-item">'
-
+        result += """
+        <div class="experience-item">
+        """
 
         for i, line in enumerate(block):
 
             if i == 0:
 
                 result += f"""
-
                 <div class="experience-title">
-
                     {esc(line)}
-
                 </div>
-
                 """
 
             elif i == 1:
 
                 result += f"""
-
                 <div class="experience-meta">
-
                     {esc(line)}
-
                 </div>
-
                 """
 
             else:
@@ -572,55 +787,45 @@ def render_main_section(title, content):
                 clean = line.lstrip("-• ").strip()
 
                 result += f"""
-
                 <div class="main-text">
-
                     • {esc(clean)}
-
                 </div>
-
                 """
 
-
         result += "</div>"
-
 
     return result
 
 
-def skill_html():
+def skill_html(accent):
 
-    if not st.session_state.skills.strip():
+    skills = st.session_state.skills
 
+    if not skills or not skills.strip():
         return ""
 
-
     result = """
-
     <div class="sidebar-section">
-
         SKILLS
-
     </div>
-
     """
 
-
     lines = [
-
         x.strip()
-
-        for x in st.session_state.skills.splitlines()
-
+        for x in skills.splitlines()
         if x.strip()
     ]
 
+    default_levels = [
+        90,
+        85,
+        80,
+        75,
+        70,
+        65
+    ]
 
     for index, skill in enumerate(lines):
-
-        # Example:
-        # Python
-        # Python | 90
 
         if "|" in skill:
 
@@ -629,136 +834,726 @@ def skill_html():
                 1
             )
 
+            name = name.strip()
+
+            numbers = re.sub(
+                r"[^0-9]",
+                "",
+                level
+            )
+
             try:
-
-                percent = int(
-                    re.sub(
-                        r"[^0-9]",
-                        "",
-                        level
-                    )
-                )
-
+                percent = int(numbers)
             except:
-
                 percent = 75
 
         else:
 
             name = skill
 
-            levels = [
-                90,
-                85,
-                80,
-                75,
-                70,
-                65
+            percent = default_levels[
+                index % len(default_levels)
             ]
-
-            percent = levels[
-                index % len(levels)
-            ]
-
 
         percent = max(
             0,
-            min(
-                100,
-                percent
-            )
+            min(100, percent)
         )
 
-
         result += f"""
-
         <div class="skill-item">
 
             <div class="skill-name">
-
                 {esc(name)}
-
             </div>
 
             <div class="skill-track">
 
                 <div
                     class="skill-bar"
-                    style="width:{percent}%"
+                    style="
+                        width:{percent}%;
+                        background:{accent};
+                    "
                 ></div>
 
             </div>
 
         </div>
-
         """
 
+    return result
+
+
+def list_section(title, text):
+
+    if not text or not text.strip():
+        return ""
+
+    result = f"""
+    <div class="sidebar-section">
+        {esc(title)}
+    </div>
+    """
+
+    for line in text.splitlines():
+
+        if line.strip():
+
+            result += f"""
+            <div class="sidebar-text">
+                • {esc(line.strip())}
+            </div>
+            """
 
     return result
+
+
+def make_pdf():
+
+    buffer = BytesIO()
+
+    page_width, page_height = A4
+
+    c = canvas.Canvas(
+        buffer,
+        pagesize=A4
+    )
+
+    # Background
+    c.setFillColor(colors.white)
+    c.rect(
+        0,
+        0,
+        page_width,
+        page_height,
+        fill=1,
+        stroke=0
+    )
+
+    # Sidebar
+    c.setFillColor(
+        colors.HexColor("#151515")
+    )
+
+    sidebar_width = 70 * mm
+
+    c.rect(
+        0,
+        0,
+        sidebar_width,
+        page_height,
+        fill=1,
+        stroke=0
+    )
+
+    # Yellow top shape
+    c.setFillColor(
+        colors.HexColor("#FFC107")
+    )
+
+    c.rect(
+        0,
+        page_height - 85 * mm,
+        sidebar_width,
+        85 * mm,
+        fill=1,
+        stroke=0
+    )
+
+    # Main area
+    x = sidebar_width + 12 * mm
+    y = page_height - 25 * mm
+
+    # Name
+    c.setFillColor(
+        colors.HexColor("#151515")
+    )
+
+    c.setFont(
+        "Helvetica-Bold",
+        22
+    )
+
+    name = (
+        st.session_state.name
+        or "YOUR NAME"
+    ).upper()
+
+    c.drawString(
+        x,
+        y,
+        name[:40]
+    )
+
+    y -= 11 * mm
+
+    # Role
+    c.setFillColor(
+        colors.HexColor("#B77900")
+    )
+
+    c.setFont(
+        "Helvetica-Bold",
+        9
+    )
+
+    role = (
+        st.session_state.role
+        or "PROFESSIONAL TITLE"
+    )
+
+    c.drawString(
+        x,
+        y,
+        role[:70]
+    )
+
+    y -= 18 * mm
+
+    # Summary
+    if st.session_state.summary.strip():
+
+        c.setFillColor(
+            colors.HexColor("#151515")
+        )
+
+        c.setFont(
+            "Helvetica-Bold",
+            14
+        )
+
+        c.drawString(
+            x,
+            y,
+            "ABOUT ME"
+        )
+
+        y -= 8 * mm
+
+        c.setFont(
+            "Helvetica",
+            8
+        )
+
+        c.setFillColor(
+            colors.HexColor("#555555")
+        )
+
+        text = c.beginText(
+            x,
+            y
+        )
+
+        text.setLeading(12)
+
+        words = st.session_state.summary.split()
+
+        line = ""
+
+        for word in words:
+
+            test = (
+                line + " " + word
+            ).strip()
+
+            if len(test) > 75:
+
+                text.textLine(line)
+
+                line = word
+
+            else:
+                line = test
+
+        if line:
+            text.textLine(line)
+
+        c.drawText(text)
+
+        y -= 45 * mm
+
+    # Sections
+    sections = [
+        (
+            "EDUCATION",
+            st.session_state.education
+        ),
+        (
+            "EXPERIENCE",
+            st.session_state.experience
+        ),
+        (
+            "PROJECTS",
+            st.session_state.projects
+        )
+    ]
+
+    for title, content in sections:
+
+        if not content.strip():
+            continue
+
+        if y < 40 * mm:
+
+            c.showPage()
+
+            y = page_height - 25 * mm
+
+        c.setFillColor(
+            colors.HexColor("#151515")
+        )
+
+        c.setFont(
+            "Helvetica-Bold",
+            14
+        )
+
+        c.drawString(
+            x,
+            y,
+            title
+        )
+
+        y -= 8 * mm
+
+        for block in parse_blocks(content):
+
+            for i, line in enumerate(block):
+
+                if y < 25 * mm:
+
+                    c.showPage()
+
+                    y = page_height - 25 * mm
+
+                if i == 0:
+
+                    c.setFont(
+                        "Helvetica-Bold",
+                        9
+                    )
+
+                    c.setFillColor(
+                        colors.HexColor("#151515")
+                    )
+
+                elif i == 1:
+
+                    c.setFont(
+                        "Helvetica-Bold",
+                        8
+                    )
+
+                    c.setFillColor(
+                        colors.HexColor("#B77900")
+                    )
+
+                else:
+
+                    c.setFont(
+                        "Helvetica",
+                        8
+                    )
+
+                    c.setFillColor(
+                        colors.HexColor("#555555")
+                    )
+
+                c.drawString(
+                    x + 4 * mm,
+                    y,
+                    line[:90]
+                )
+
+                y -= 5 * mm
+
+            y -= 4 * mm
+
+        y -= 4 * mm
+
+    # =====================================================
+    # SIDEBAR CONTENT
+    # =====================================================
+
+    side_x = 8 * mm
+    side_y = page_height - 100 * mm
+
+    # Photo
+    if st.session_state.photo:
+
+        try:
+
+            image = Image.open(
+                BytesIO(
+                    st.session_state.photo
+                )
+            )
+
+            image.thumbnail(
+                (55 * mm, 55 * mm)
+            )
+
+            img_buffer = BytesIO()
+
+            image.save(
+                img_buffer,
+                format="JPEG"
+            )
+
+            img_buffer.seek(0)
+
+            c.drawImage(
+                ImageReader(img_buffer),
+                8 * mm,
+                page_height - 78 * mm,
+                width=54 * mm,
+                height=54 * mm,
+                preserveAspectRatio=True,
+                mask="auto"
+            )
+
+        except:
+            pass
+
+    # Sidebar text
+    c.setFillColor(
+        colors.white
+    )
+
+    c.setFont(
+        "Helvetica-Bold",
+        9
+    )
+
+    sidebar_name = (
+        st.session_state.name
+        or "YOUR NAME"
+    )
+
+    c.drawCentredString(
+        sidebar_width / 2,
+        side_y,
+        sidebar_name[:30]
+    )
+
+    side_y -= 7 * mm
+
+    c.setFillColor(
+        colors.HexColor("#FFC107")
+    )
+
+    c.setFont(
+        "Helvetica-Bold",
+        7
+    )
+
+    c.drawCentredString(
+        sidebar_width / 2,
+        side_y,
+        (
+            st.session_state.role
+            or "PROFESSIONAL TITLE"
+        )[:40]
+    )
+
+    side_y -= 16 * mm
+
+    # Contact
+    contacts = [
+        st.session_state.email,
+        st.session_state.phone,
+        st.session_state.location,
+        st.session_state.linkedin,
+        st.session_state.website
+    ]
+
+    c.setFillColor(
+        colors.HexColor("#FFC107")
+    )
+
+    c.setFont(
+        "Helvetica-Bold",
+        10
+    )
+
+    c.drawString(
+        side_x,
+        side_y,
+        "CONTACT"
+    )
+
+    side_y -= 7 * mm
+
+    c.setFillColor(
+        colors.white
+    )
+
+    c.setFont(
+        "Helvetica",
+        7
+    )
+
+    for contact in contacts:
+
+        if contact.strip():
+
+            c.drawString(
+                side_x,
+                side_y,
+                contact[:40]
+            )
+
+            side_y -= 6 * mm
+
+    # Skills
+    if st.session_state.skills.strip():
+
+        side_y -= 6 * mm
+
+        c.setFillColor(
+            colors.HexColor("#FFC107")
+        )
+
+        c.setFont(
+            "Helvetica-Bold",
+            10
+        )
+
+        c.drawString(
+            side_x,
+            side_y,
+            "
+            "SKILLS"
+        )
+
+        side_y -= 7 * mm
+
+        skill_lines = [
+            x.strip()
+            for x in st.session_state.skills.splitlines()
+            if x.strip()
+        ]
+
+        for skill in skill_lines:
+
+            if "|" in skill:
+                skill_name, skill_level = skill.split(
+                    "|",
+                    1
+                )
+
+                skill_name = skill_name.strip()
+
+            else:
+                skill_name = skill.strip()
+
+            if side_y < 20 * mm:
+                break
+
+            c.setFillColor(
+                colors.white
+            )
+
+            c.setFont(
+                "Helvetica",
+                7
+            )
+
+            c.drawString(
+                side_x,
+                side_y,
+                skill_name[:28]
+            )
+
+            side_y -= 5 * mm
+
+
+    # Languages
+    if (
+        st.session_state.languages
+        and st.session_state.languages.strip()
+        and side_y > 25 * mm
+    ):
+
+        side_y -= 5 * mm
+
+        c.setFillColor(
+            colors.HexColor("#FFC107")
+        )
+
+        c.setFont(
+            "Helvetica-Bold",
+            10
+        )
+
+        c.drawString(
+            side_x,
+            side_y,
+            "LANGUAGES"
+        )
+
+        side_y -= 7 * mm
+
+        c.setFillColor(
+            colors.white
+        )
+
+        c.setFont(
+            "Helvetica",
+            7
+        )
+
+        for language in (
+            st.session_state.languages
+            .splitlines()
+        ):
+
+            language = language.strip()
+
+            if not language:
+                continue
+
+            if side_y < 20 * mm:
+                break
+
+            c.drawString(
+                side_x,
+                side_y,
+                language[:30]
+            )
+
+            side_y -= 5 * mm
+
+
+    # Certifications
+    if (
+        st.session_state.certifications
+        and st.session_state.certifications.strip()
+        and side_y > 25 * mm
+    ):
+
+        side_y -= 5 * mm
+
+        c.setFillColor(
+            colors.HexColor("#FFC107")
+        )
+
+        c.setFont(
+            "Helvetica-Bold",
+            10
+        )
+
+        c.drawString(
+            side_x,
+            side_y,
+            "CERTIFICATIONS"
+        )
+
+        side_y -= 7 * mm
+
+        c.setFillColor(
+            colors.white
+        )
+
+        c.setFont(
+            "Helvetica",
+            7
+        )
+
+        for certification in (
+            st.session_state.certifications
+            .splitlines()
+        ):
+
+            certification = certification.strip()
+
+            if not certification:
+                continue
+
+            if side_y < 20 * mm:
+                break
+
+            c.drawString(
+                side_x,
+                side_y,
+                certification[:30]
+            )
+
+            side_y -= 5 * mm
+
+
+    # Save PDF
+
+    c.save()
+
+    buffer.seek(0)
+
+    return buffer.getvalue()
 
 
 # =========================================================
 # HEADER
 # =========================================================
 
-st.markdown("""
+st.markdown(
+    """
+    <div class="hero">
 
-<div class="hero">
+        <h1>
+            CV Automator
+            <span style="color:#ffc107;">
+                PREMIUM
+            </span>
+        </h1>
 
-    <h1>
+        <p>
+            Professional CV Builder • Live Preview • Profile Photo • PDF Export
+        </p>
 
-        CV Automator
-        <span style="color:#f59e0b">
-            PREMIUM
-        </span>
-
-    </h1>
-
-    <p>
-
-        Premium dark sidebar •
-        Profile photo •
-        Live preview •
-        PDF export
-
-    </p>
-
-</div>
-
-""", unsafe_allow_html=True)
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 
 # =========================================================
-# SIDEBAR SETTINGS
+# DESIGN SETTINGS
 # =========================================================
 
 with st.sidebar:
 
-    st.header("🎨 Premium Design")
+    st.header(
+        "🎨 Design Settings"
+    )
 
     accent = st.color_picker(
         "Accent Color",
-        "#F59E0B"
+        "#FFC107"
     )
 
     sidebar_color = st.color_picker(
         "Sidebar Color",
-        "#162132"
+        "#151515"
     )
 
     st.divider()
 
+    st.markdown(
+        "### 📄 CV Style"
+    )
+
     st.caption(
-        "Premium Sidebar Template"
+        "Modern Professional Geometric Template"
     )
 
 
 # =========================================================
-# LAYOUT
+# MAIN LAYOUT
 # =========================================================
 
 editor, preview = st.columns(
-    [0.85, 1.15],
+    [0.9, 1.1],
     gap="large"
 )
 
@@ -769,36 +1564,33 @@ editor, preview = st.columns(
 
 with editor:
 
+    st.markdown(
+        "## ✏️ CV Editor"
+    )
+
     tabs = st.tabs([
-
         "👤 Personal",
-
         "🧠 Profile",
-
         "💼 Experience",
-
         "🎓 Education",
-
         "🚀 Projects",
-
         "🛠 Skills",
-
         "📜 More"
     ])
 
 
-    # -----------------------------------------------------
+    # =====================================================
     # PERSONAL
-    # -----------------------------------------------------
+    # =====================================================
 
     with tabs[0]:
 
-        st.markdown("### 📸 Profile Picture")
+        st.markdown(
+            "### 📸 Profile Picture"
+        )
 
         uploaded = st.file_uploader(
-
-            "Upload Picture",
-
+            "Upload Profile Picture",
             type=[
                 "jpg",
                 "jpeg",
@@ -807,45 +1599,44 @@ with editor:
             ]
         )
 
-
         if uploaded:
 
-            image = Image.open(
-                uploaded
-            ).convert(
-                "RGB"
-            )
+            try:
 
+                image = Image.open(
+                    uploaded
+                ).convert(
+                    "RGB"
+                )
 
-            buffer = BytesIO()
+                buffer = BytesIO()
 
-            image.save(
+                image.save(
+                    buffer,
+                    format="JPEG",
+                    quality=95
+                )
 
-                buffer,
+                st.session_state.photo = (
+                    buffer.getvalue()
+                )
 
-                format="JPEG",
+            except Exception as error:
 
-                quality=95
-            )
-
-
-            st.session_state.photo = (
-                buffer.getvalue()
-            )
+                st.error(
+                    f"Image Error: {error}"
+                )
 
 
         if st.session_state.photo:
 
             st.image(
-
                 st.session_state.photo,
-
                 width=160
             )
 
-
             if st.button(
-                "Remove Picture"
+                "🗑 Remove Picture"
             ):
 
                 st.session_state.photo = None
@@ -857,166 +1648,158 @@ with editor:
 
 
         st.session_state.name = st.text_input(
-
             "Full Name",
-
-            st.session_state.name,
-
-            placeholder=
-            "Muhammad Rehan Ahmed"
+            value=st.session_state.name,
+            placeholder="Muhammad Rehan Ahmed"
         )
 
 
         st.session_state.role = st.text_input(
-
             "Professional Title",
-
-            st.session_state.role,
-
-            placeholder=
-            "Software Engineer"
+            value=st.session_state.role,
+            placeholder="Software Engineer"
         )
 
 
         st.session_state.email = st.text_input(
-
             "Email",
-
-            st.session_state.email
+            value=st.session_state.email,
+            placeholder="example@email.com"
         )
 
 
         st.session_state.phone = st.text_input(
-
             "Phone",
-
-            st.session_state.phone
+            value=st.session_state.phone,
+            placeholder="+92 300 1234567"
         )
 
 
         st.session_state.location = st.text_input(
-
             "Location",
-
-            st.session_state.location
+            value=st.session_state.location,
+            placeholder="Faisalabad, Pakistan"
         )
 
 
         st.session_state.linkedin = st.text_input(
-
             "LinkedIn",
-
-            st.session_state.linkedin
+            value=st.session_state.linkedin
         )
 
 
         st.session_state.website = st.text_input(
-
             "Portfolio / Website",
-
-            st.session_state.website
+            value=st.session_state.website
         )
 
 
-    # -----------------------------------------------------
+    # =====================================================
     # PROFILE
-    # -----------------------------------------------------
+    # =====================================================
 
     with tabs[1]:
 
         st.session_state.summary = st.text_area(
-
             "Professional Summary",
-
-            st.session_state.summary,
-
+            value=st.session_state.summary,
             height=220,
-
-            placeholder=
-            "Motivated software engineering student..."
+            placeholder=(
+                "Write a short professional introduction "
+                "about yourself, your skills and your goals..."
+            )
         )
 
 
-    # -----------------------------------------------------
+    # =====================================================
     # EXPERIENCE
-    # -----------------------------------------------------
+    # =====================================================
 
     with tabs[2]:
 
+        st.info(
+            "Format: First line = Job Title, "
+            "Second line = Date/Company, "
+            "Remaining lines = Details. "
+            "Separate jobs with an empty line."
+        )
+
         st.session_state.experience = st.text_area(
-
             "Experience",
-
-            st.session_state.experience,
-
-            height=300,
-
-            placeholder="""Software Developer | ABC Company | 2025-2026
-2025 - 2026
+            value=st.session_state.experience,
+            height=320,
+            placeholder="""Software Developer | ABC Company
+2025 - Present
 Developed automation tools
 Built web applications
 Improved system performance
 
-Freelance Developer | Self Employed
+Freelance Developer
 2024 - Present
 Created websites
 Worked with clients"""
         )
 
 
-    # -----------------------------------------------------
+    # =====================================================
     # EDUCATION
-    # -----------------------------------------------------
+    # =====================================================
 
     with tabs[3]:
 
+        st.info(
+            "Separate each education entry "
+            "with an empty line."
+        )
+
         st.session_state.education = st.text_area(
-
             "Education",
-
-            st.session_state.education,
-
-            height=240
+            value=st.session_state.education,
+            height=260,
+            placeholder="""BS Software Engineering
+2025 - Present
+University Name
+Relevant coursework and achievements"""
         )
 
 
-    # -----------------------------------------------------
+    # =====================================================
     # PROJECTS
-    # -----------------------------------------------------
+    # =====================================================
 
     with tabs[4]:
 
         st.session_state.projects = st.text_area(
-
             "Projects",
+            value=st.session_state.projects,
+            height=280,
+            placeholder="""CV Automator
+2026
+Built a professional CV generator
+Added live preview and PDF export
 
-            st.session_state.projects,
-
-            height=260
+AI Study Assistant
+2026
+Created an AI based student helper"""
         )
 
 
-    # -----------------------------------------------------
+    # =====================================================
     # SKILLS
-    # -----------------------------------------------------
+    # =====================================================
 
     with tabs[5]:
 
         st.info(
-
-            "Write one skill per line. "
-            "Optional: Python | 90"
+            "One skill per line.\n\n"
+            "Optional percentage format:\n"
+            "Python | 90"
         )
 
-
         st.session_state.skills = st.text_area(
-
             "Skills",
-
-            st.session_state.skills,
-
-            height=250,
-
+            value=st.session_state.skills,
+            height=260,
             placeholder="""Python | 90
 C++ | 80
 HTML | 95
@@ -1025,29 +1808,27 @@ JavaScript | 75"""
         )
 
 
-    # -----------------------------------------------------
+    # =====================================================
     # MORE
-    # -----------------------------------------------------
+    # =====================================================
 
     with tabs[6]:
 
         st.session_state.languages = st.text_area(
-
             "Languages",
-
-            st.session_state.languages,
-
-            height=140
+            value=st.session_state.languages,
+            height=150,
+            placeholder="""English
+Urdu"""
         )
 
 
         st.session_state.certifications = st.text_area(
-
             "Certifications",
-
-            st.session_state.certifications,
-
-            height=140
+            value=st.session_state.certifications,
+            height=150,
+            placeholder="""Python Certification
+Web Development Certificate"""
         )
 
 
@@ -1058,878 +1839,349 @@ JavaScript | 75"""
 with preview:
 
     st.markdown(
-        "### 👁️ Premium Live Preview"
+        "## 👁️ Live CV Preview"
     )
 
 
+    # =====================================================
+    # COMPLETENESS SCORE
+    # =====================================================
+
     score_fields = [
-
         st.session_state.name,
-
         st.session_state.role,
-
         st.session_state.email,
-
         st.session_state.summary,
-
-        st.session_state.skills,
-
         st.session_state.education,
-
         st.session_state.experience,
-
-        st.session_state.projects
+        st.session_state.projects,
+        st.session_state.skills
     ]
 
+    completed = sum(
+        1
+        for item in score_fields
+        if item and item.strip()
+    )
 
     score = round(
-
-        sum(
-            bool(
-                x.strip()
-            )
-
-            for x in score_fields
-        )
-
+        completed
         /
-
         len(score_fields)
-
         *
-
         100
     )
 
 
     st.markdown(
-
         f"""
-
         <div class="score-card">
 
             <div class="score-label">
-
                 CV COMPLETENESS
-
             </div>
 
             <div class="score-number">
-
-                {score}/100
-
+                {score}%
             </div>
 
         </div>
-
         """,
-
         unsafe_allow_html=True
     )
 
 
-    # -----------------------------------------------------
-    # PHOTO
-    # -----------------------------------------------------
+    # =====================================================
+    # PHOTO HTML
+    # =====================================================
 
     if st.session_state.photo:
 
         encoded = base64.b64encode(
-
             st.session_state.photo
-
         ).decode()
 
-
         photo_html = f"""
-
         <img
             class="profile-photo"
             src="data:image/jpeg;base64,{encoded}"
-            style="border-color:{accent};"
+            style="
+                box-shadow:
+                    0 0 0 5px {accent};
+            "
         >
-
         """
 
     else:
 
         photo_html = f"""
-
         <div
             class="profile-photo"
             style="
-                background:#27364d;
-                border-color:{accent};
+                background:#2b2b2b;
                 display:flex;
                 align-items:center;
                 justify-content:center;
-                font-size:50px;
+                font-size:60px;
+                color:white;
+                box-shadow:
+                    0 0 0 5px {accent};
             "
         >
-
             👤
-
         </div>
-
         """
 
 
-    # -----------------------------------------------------
+    # =====================================================
     # CONTACT
-    # -----------------------------------------------------
+    # =====================================================
 
     contact_html = ""
 
-
     contacts = [
-
-        ("📧", st.session_state.email),
-
-        ("📱", st.session_state.phone),
-
-        ("📍", st.session_state.location),
-
-        ("🔗", st.session_state.linkedin),
-
-        ("🌐", st.session_state.website)
+        ("✉", st.session_state.email),
+        ("☎", st.session_state.phone),
+        ("⌖", st.session_state.location),
+        ("in", st.session_state.linkedin),
+        ("◉", st.session_state.website)
     ]
-
 
     for icon, value in contacts:
 
-        if value.strip():
+        if value and value.strip():
 
             contact_html += f"""
-
             <div class="sidebar-text">
-
-                {icon}
-                {esc(value)}
-
+                <b>{icon}</b> {esc(value)}
             </div>
-
             """
 
 
-    # -----------------------------------------------------
-    # LANGUAGES
-    # -----------------------------------------------------
+    # =====================================================
+    # FULL HTML
+    # =====================================================
 
-    languages_html = ""
+    cv_html = f"""
 
-
-    if st.session_state.languages.strip():
-
-        languages_html = f"""
-
-        <div class="sidebar-section">
-
-            LANGUAGES
-
-        </div>
-
-        """
-
-
-        for line in (
-            st.session_state.languages
-            .splitlines()
-        ):
-
-            if line.strip():
-
-                languages_html += f"""
-
-                <div class="sidebar-text">
-
-                    {esc(line)}
-
-                </div>
-
-                """
-
-
-    # -----------------------------------------------------
-    # CERTIFICATIONS
-    # -----------------------------------------------------
-
-    cert_html = ""
-
-
-    if st.session_state.certifications.strip():
-
-        cert_html = f"""
-
-        <div class="sidebar-section">
-
-            CERTIFICATIONS
-
-        </div>
-
-        """
-
-
-        for line in (
-            st.session_state.certifications
-            .splitlines()
-        ):
-
-            if line.strip():
-
-                cert_html += f"""
-
-                <div class="sidebar-text">
-
-                    {esc(line)}
-
-                </div>
-
-                """
-
-
-    # -----------------------------------------------------
-    # FULL CV HTML
-    # -----------------------------------------------------
-
-    st.markdown(
-
-        f"""
-
-        <style>
+    <style>
 
         .cv-sidebar {{
-
-            background:
-            {sidebar_color};
-
+            background:{sidebar_color};
         }}
 
-        .skill-bar {{
-
+        .cv-sidebar::before {{
             background:
-            {accent};
+                linear-gradient(
+                    135deg,
+                    {accent},
+                    #ff9800
+                );
+        }}
 
+        .cv-sidebar::after {{
+            background:{accent};
+        }}
+
+        .profile-photo {{
+            box-shadow:
+                0 0 0 5px {accent};
+        }}
+
+        .sidebar-role {{
+            color:{accent};
         }}
 
         .sidebar-section {{
+            color:{accent};
+            border-left-color:{accent};
+        }}
 
-            color:
-            {accent};
-
+        .skill-bar {{
+            background:{accent};
         }}
 
         .main-section {{
-
-            border-color:
-            {accent};
-
+            border-bottom-color:{accent};
         }}
 
-        .experience-meta {{
-
-            color:
-            {accent};
-
+        .experience-item {{
+            border-left-color:{accent};
         }}
 
         .cv-role {{
-
-            color:
-            {accent};
-
+            color:{accent};
         }}
 
-        </style>
+    </style>
 
 
-        <div class="cv-wrapper">
+    <div class="cv-wrapper">
 
 
-            <!-- LEFT -->
+        <!-- SIDEBAR -->
 
-            <div class="cv-sidebar">
+        <div class="cv-sidebar">
 
-
-                {photo_html}
-
-
-                <div class="sidebar-name">
-
-                    {esc(st.session_state.name)
-                    or "YOUR NAME"}
-
-                </div>
+            {photo_html}
 
 
-                <div class="sidebar-role">
+            <div class="sidebar-name">
 
-                    {esc(st.session_state.role)
-                    or "PROFESSIONAL TITLE"}
-
-                </div>
-
-
-                <div class="sidebar-section">
-
-                    CONTACT
-
-                </div>
-
-
-                {contact_html}
-
-
-                {skill_html()}
-
-
-                {languages_html}
-
-
-                {cert_html}
-
+                {esc(st.session_state.name) or "YOUR NAME"}
 
             </div>
 
 
-            <!-- RIGHT -->
+            <div class="sidebar-role">
 
-            <div class="cv-main">
-
-
-                                <div class="cv-name">
-
-                    {esc(st.session_state.name)
-                    or "YOUR NAME"}
-
-                </div>
-
-
-                <div class="cv-role">
-
-                    {esc(st.session_state.role)
-                    or "PROFESSIONAL TITLE"}
-
-                </div>
-
-
-                <!-- PROFILE -->
-
-                {
-                    f'''
-                    <div class="main-section">
-                        PROFILE
-                    </div>
-
-                    <div class="main-text">
-                        {esc(st.session_state.summary)}
-                    </div>
-                    '''
-                    if st.session_state.summary.strip()
-                    else ""
-                }
-
-
-                <!-- EXPERIENCE -->
-
-                {
-                    render_main_section(
-                        "Experience",
-                        st.session_state.experience
-                    )
-                }
-
-
-                <!-- EDUCATION -->
-
-                {
-                    render_main_section(
-                        "Education",
-                        st.session_state.education
-                    )
-                }
-
-
-                <!-- PROJECTS -->
-
-                {
-                    render_main_section(
-                        "Projects",
-                        st.session_state.projects
-                    )
-                }
-
+                {esc(st.session_state.role) or "PROFESSIONAL TITLE"}
 
             </div>
+
+
+            <div class="sidebar-section">
+
+                CONTACT
+
+            </div>
+
+
+            {contact_html}
+
+
+            {skill_html(accent)}
+
+
+            {list_section(
+                "LANGUAGES",
+                st.session_state.languages
+            )}
+
+
+            {list_section(
+                "CERTIFICATIONS",
+                st.session_state.certifications
+            )}
 
 
         </div>
 
-        """,
 
+        <!-- MAIN -->
+
+        <div class="cv-main">
+
+
+            <div class="cv-name">
+
+                {esc(st.session_state.name) or "YOUR NAME"}
+
+            </div>
+
+
+            <div
+                class="cv-role"
+                style="
+                    color:{accent};
+                "
+            >
+
+                {esc(st.session_state.role) or "PROFESSIONAL TITLE"}
+
+            </div>
+
+
+            {
+                f'''
+                <div class="main-section">
+                    ABOUT ME
+                </div>
+
+                <div class="summary-box">
+                    {esc(st.session_state.summary)}
+                </div>
+                '''
+                if st.session_state.summary.strip()
+                else ""
+            }
+
+
+            {render_main_section(
+                "EDUCATION",
+                st.session_state.education
+            )}
+
+
+            {render_main_section(
+                "EXPERIENCE",
+                st.session_state.experience
+            )}
+
+
+            {render_main_section(
+                "PROJECTS",
+                st.session_state.projects
+            )}
+
+
+        </div>
+
+
+    </div>
+
+    """
+
+
+    st.markdown(
+        cv_html,
         unsafe_allow_html=True
     )
 
 
-# =========================================================
-# PDF GENERATOR
-# =========================================================
-
-def generate_pdf():
-
-    buffer = BytesIO()
-
-
-    document = SimpleDocTemplate(
-
-        buffer,
-
-        pagesize=A4,
-
-        rightMargin=18 * mm,
-
-        leftMargin=18 * mm,
-
-        topMargin=15 * mm,
-
-        bottomMargin=15 * mm
-    )
-
-
-    styles = getSampleStyleSheet()
-
-
-    title_style = ParagraphStyle(
-
-        "CVTitle",
-
-        parent=styles["Heading1"],
-
-        fontSize=24,
-
-        leading=28,
-
-        textColor=colors.HexColor("#162132"),
-
-        spaceAfter=4
-    )
-
-
-    role_style = ParagraphStyle(
-
-        "CVRole",
-
-        parent=styles["Normal"],
-
-        fontSize=11,
-
-        textColor=colors.HexColor(accent),
-
-        spaceAfter=14
-    )
-
-
-    section_style = ParagraphStyle(
-
-        "CVSection",
-
-        parent=styles["Heading2"],
-
-        fontSize=13,
-
-        leading=16,
-
-        textColor=colors.HexColor("#162132"),
-
-        spaceBefore=12,
-
-        spaceAfter=8
-    )
-
-
-    text_style = ParagraphStyle(
-
-        "CVText",
-
-        parent=styles["Normal"],
-
-        fontSize=9.5,
-
-        leading=14,
-
-        textColor=colors.HexColor("#374151"),
-
-        spaceAfter=5
-    )
-
-
-    meta_style = ParagraphStyle(
-
-        "CVMeta",
-
-        parent=styles["Normal"],
-
-        fontSize=9,
-
-        leading=12,
-
-        textColor=colors.HexColor(accent),
-
-        spaceAfter=5
-    )
-
-
-    story = []
-
-
-    # -----------------------------------------------------
-    # PHOTO
-    # -----------------------------------------------------
-
-    if st.session_state.photo:
-
-        try:
-
-            photo_buffer = BytesIO(
-                st.session_state.photo
-            )
-
-
-            photo = RLImage(
-
-                photo_buffer,
-
-                width=38 * mm,
-
-                height=38 * mm
-            )
-
-
-            story.append(photo)
-
-            story.append(
-                Spacer(
-                    1,
-                    5 * mm
-                )
-            )
-
-        except:
-
-            pass
-
-
-    # -----------------------------------------------------
-    # NAME
-    # -----------------------------------------------------
-
-    name = (
-        esc(st.session_state.name)
-        or "YOUR NAME"
-    )
-
-
-    role = (
-        esc(st.session_state.role)
-        or "PROFESSIONAL TITLE"
-    )
-
-
-    story.append(
-
-        Paragraph(
-
-            name.upper(),
-
-            title_style
-        )
-    )
-
-
-    story.append(
-
-        Paragraph(
-
-            role,
-
-            role_style
-        )
-    )
-
-
-    # -----------------------------------------------------
-    # CONTACT
-    # -----------------------------------------------------
-
-    contact_items = []
-
-
-    if st.session_state.email.strip():
-
-        contact_items.append(
-            esc(
-                st.session_state.email
-            )
-        )
-
-
-    if st.session_state.phone.strip():
-
-        contact_items.append(
-            esc(
-                st.session_state.phone
-            )
-        )
-
-
-    if st.session_state.location.strip():
-
-        contact_items.append(
-            esc(
-                st.session_state.location
-            )
-        )
-
-
-    if st.session_state.linkedin.strip():
-
-        contact_items.append(
-            esc(
-                st.session_state.linkedin
-            )
-        )
-
-
-    if st.session_state.website.strip():
-
-        contact_items.append(
-            esc(
-                st.session_state.website
-            )
-        )
-
-
-    if contact_items:
-
-        story.append(
-
-            Paragraph(
-
-                " • ".join(
-                    contact_items
-                ),
-
-                text_style
-            )
-        )
+    st.divider()
 
 
     # =====================================================
-    # PDF SECTION FUNCTION
+    # PDF EXPORT
     # =====================================================
 
-    def add_simple_section(
+    st.markdown(
+        "### 📥 Export"
+    )
 
-        title,
 
-        content
+    if st.button(
+        "⚙ Generate Professional PDF"
     ):
 
-        if not content.strip():
-
-            return
-
-
-        story.append(
-
-            Paragraph(
-
-                title.upper(),
-
-                section_style
-            )
+        st.session_state.pdf_data = (
+            make_pdf()
         )
 
 
-        for line in content.splitlines():
+    if (
+        "pdf_data"
+        in st.session_state
+    ):
 
-            line = line.strip()
-
-
-            if not line:
-
-                continue
-
-
-            story.append(
-
-                Paragraph(
-
-                    esc(
-                        line
-                    ),
-
-                    text_style
+        st.download_button(
+            label="⬇ Download CV PDF",
+            data=st.session_state.pdf_data,
+            file_name=(
+                (
+                    st.session_state.name
+                    or "Professional_CV"
                 )
-            )
-
-
-    # -----------------------------------------------------
-    # SUMMARY
-    # -----------------------------------------------------
-
-    if st.session_state.summary.strip():
-
-        story.append(
-
-            Paragraph(
-
-                "PROFILE",
-
-                section_style
-            )
+                .replace(
+                    " ",
+                    "_"
+                )
+                + ".pdf"
+            ),
+            mime="application/pdf",
+            use_container_width=True
         )
-
-
-        story.append(
-
-            Paragraph(
-
-                esc(
-                    st.session_state.summary
-                ),
-
-                text_style
-            )
-        )
-
-
-    # -----------------------------------------------------
-    # EXPERIENCE
-    # -----------------------------------------------------
-
-    add_simple_section(
-
-        "Experience",
-
-        st.session_state.experience
-    )
-
-
-    # -----------------------------------------------------
-    # EDUCATION
-    # -----------------------------------------------------
-
-    add_simple_section(
-
-        "Education",
-
-        st.session_state.education
-    )
-
-
-    # -----------------------------------------------------
-    # PROJECTS
-    # -----------------------------------------------------
-
-    add_simple_section(
-
-        "Projects",
-
-        st.session_state.projects
-    )
-
-
-    # -----------------------------------------------------
-    # SKILLS
-    # -----------------------------------------------------
-
-    add_simple_section(
-
-        "Skills",
-
-        st.session_state.skills
-    )
-
-
-    # -----------------------------------------------------
-    # LANGUAGES
-    # -----------------------------------------------------
-
-    add_simple_section(
-
-        "Languages",
-
-        st.session_state.languages
-    )
-
-
-    # -----------------------------------------------------
-    # CERTIFICATIONS
-    # -----------------------------------------------------
-
-    add_simple_section(
-
-        "Certifications",
-
-        st.session_state.certifications
-    )
-
-
-    document.build(
-        story
-    )
-
-
-    buffer.seek(
-        0
-    )
-
-
-    return buffer.getvalue()
-
-
-# =========================================================
-# DOWNLOAD SECTION
-# =========================================================
-
-st.divider()
-
-
-st.markdown(
-    "## 📥 Export Your Premium CV"
-)
-
-
-pdf_data = generate_pdf()
-
-
-safe_name = (
-
-    st.session_state.name
-    .strip()
-    .replace(
-        " ",
-        "_"
-    )
-
-    or
-
-    "Premium_CV"
-)
-
-
-st.download_button(
-
-    label="📄 Download Premium CV PDF",
-
-    data=pdf_data,
-
-    file_name=f"{safe_name}_CV.pdf",
-
-    mime="application/pdf",
-
-    use_container_width=True
-)
 
 
 # =========================================================
@@ -1937,20 +2189,16 @@ st.download_button(
 # =========================================================
 
 st.markdown(
-
     """
-    <div style="
-        text-align:center;
-        color:#64748b;
-        padding:30px;
-        font-size:12px;
-    ">
+    <br>
 
-        CV Automator PREMIUM •
-        Create • Preview • Export
+    <center style="color:#6b7280;">
 
-    </div>
+        CV Automator Premium
+        •
+        Professional Resume Builder
+
+    </center>
     """,
-
     unsafe_allow_html=True
 )
