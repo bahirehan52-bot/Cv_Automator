@@ -2260,16 +2260,13 @@ st.markdown(
         </h1>
 
         <p>
-            Modern geometric CV •
-            Profile photo •
-            Live preview •
-            Professional PDF export
+            Modern geometric CV - Profile photo - Live preview - Professional PDF export
         </p>
 
     </div>
     """,
     unsafe_allow_html=True
-)
+    )
 
 
 # =========================================================
