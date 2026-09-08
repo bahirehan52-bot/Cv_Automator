@@ -2714,9 +2714,59 @@ for icon, value in contacts:
     )
 # FULL CV
 cv_html = f"""
+<style>
+
+.cv-sidebar {{
+    background: {sidebar_color};
+}}
+
+.cv-sidebar::before {{
+    background: linear-gradient(
+        135deg,
+        {accent},
+        #ff9800
+    );
+}}
+
+.cv-sidebar::after {{
+    background: {accent};
+}}
+
+.sidebar-role,
+.sidebar-section {{
+    color: {accent};
+}}
+
+.sidebar-section {{
+    border-left-color: {accent};
+}}
+
+.skill-bar {{
+    background: {accent};
+}}
+
+.main-section {{
+    border-bottom-color: {accent};
+}}
+
+.experience-item {{
+    border-left-color: {accent};
+}}
+
+.experience-meta {{
+    color: {accent};
+}}
+
+.cv-role {{
+    color: {accent};
+}}
+
+</style>
+
 <div class="cv-wrapper">
 
     <div class="cv-sidebar">
+
         {photo_html}
 
         <div class="sidebar-name">
@@ -2727,10 +2777,18 @@ cv_html = f"""
             {esc(st.session_state.role) or "PROFESSIONAL TITLE"}
         </div>
 
+        <div class="sidebar-section">
+            CONTACT
+        </div>
+
         {contact_html}
+
         {skill_html(accent)}
+
         {languages_html}
+
         {certifications_html}
+
     </div>
 
     <div class="cv-main">
@@ -2744,8 +2802,11 @@ cv_html = f"""
         </div>
 
         {summary_html}
+
         {education_html}
+
         {experience_html}
+
         {projects_html}
 
     </div>
