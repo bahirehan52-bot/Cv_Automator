@@ -2713,127 +2713,118 @@ for icon, value in contacts:
         st.session_state.certifications
     )
 
+# FULL CV
+cv_html = f"""
+<style>
 
-    # FULL CV
-    cv_html = f"""
-    <style>
+.cv-sidebar {{
+    background: {sidebar_color};
+}}
 
-    .cv-sidebar {{
-        background:{sidebar_color};
-    }}
+.cv-sidebar::before {{
+    background: linear-gradient(
+        135deg,
+        {accent},
+        #ff9800
+    );
+}}
 
-    .cv-sidebar::before {{
-        background:
-        linear-gradient(
-            135deg,
-            {accent},
-            #ff9800
-        );
-    }}
+.cv-sidebar::after {{
+    background: {accent};
+}}
 
-    .cv-sidebar::after {{
-        background:{accent};
-    }}
+.sidebar-role,
+.sidebar-section {{
+    color: {accent};
+}}
 
-    .sidebar-role,
-    .sidebar-section {{
-        color:{accent};
-    }}
+.sidebar-section {{
+    border-left-color: {accent};
+}}
 
-    .sidebar-section {{
-        border-left-color:{accent};
-    }}
+.skill-bar {{
+    background: {accent};
+}}
 
-    .skill-bar {{
-        background:{accent};
-    }}
+.main-section {{
+    border-bottom-color: {accent};
+}}
 
-    .main-section {{
-        border-bottom-color:{accent};
-    }}
+.experience-item {{
+    border-left-color: {accent};
+}}
 
-    .experience-item {{
-        border-left-color:{accent};
-    }}
+.experience-meta {{
+    color: {accent};
+}}
 
-    .experience-meta {{
-        color:{accent};
-    }}
+.cv-role {{
+    color: {accent};
+}}
 
-    .cv-role {{
-        color:{accent};
-    }}
+</style>
 
-    </style>
+<div class="cv-wrapper">
 
+    <!-- LEFT SIDEBAR -->
 
-    <div class="cv-wrapper">
+    <div class="cv-sidebar">
 
+        {photo_html}
 
-        <!-- LEFT SIDEBAR -->
-
-        <div class="cv-sidebar">
-
-            {photo_html}
-
-            <div class="sidebar-name">
-                {esc(st.session_state.name) or "YOUR NAME"}
-            </div>
-
-            <div class="sidebar-role">
-                {esc(st.session_state.role) or "PROFESSIONAL TITLE"}
-            </div>
-
-            <div class="sidebar-section">
-                CONTACT
-            </div>
-
-            {contact_html}
-
-            {skill_html(accent)}
-
-            {languages_html}
-
-            {certifications_html}
-
+        <div class="sidebar-name">
+            {esc(st.session_state.name) or "YOUR NAME"}
         </div>
 
-
-        <!-- RIGHT SIDE -->
-
-        <div class="cv-main">
-
-            <div class="cv-name">
-                {esc(st.session_state.name) or "YOUR NAME"}
-            </div>
-
-            <div class="cv-role">
-                {esc(st.session_state.role) or "PROFESSIONAL TITLE"}
-            </div>
-
-            {summary_html}
-
-            {education_html}
-
-            {experience_html}
-
-            {projects_html}
-
+        <div class="sidebar-role">
+            {esc(st.session_state.role) or "PROFESSIONAL TITLE"}
         </div>
+
+        <div class="sidebar-section">
+            CONTACT
+        </div>
+
+        {contact_html}
+
+        {skill_html(accent)}
+
+        {languages_html}
+
+        {certifications_html}
 
     </div>
-    """
 
+    <!-- RIGHT SIDE -->
 
-    st.markdown(
-        cv_html,
-        unsafe_allow_html=True
-    )
+    <div class="cv-main">
 
+        <div class="cv-name">
+            {esc(st.session_state.name) or "YOUR NAME"}
+        </div>
 
-    st.divider()
+        <div class="cv-role">
+            {esc(st.session_state.role) or "PROFESSIONAL TITLE"}
+        </div>
 
+        {summary_html}
 
+        {education_html}
+
+        {experience_html}
+
+        {projects_html}
+
+    </div>
+
+</div>
+"""
+
+st.markdown(
+    cv_html,
+    unsafe_allow_html=True
+)
+
+st.divider()
     # =====================================================
     # PDF DOWNLOAD
     # =====================================================
