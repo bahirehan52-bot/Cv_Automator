@@ -2440,21 +2440,24 @@ with editor:
             "Separate each experience with a blank line."
         )
 
-        st.session_state.experience = st.text_area(
-            "Experience",
-            value=st.session_state.experience,
-            height=350,
-            placeholder="""Software Developer | ABC Company
-2025 - Present
-Developed automation tools
-Built modern web applications
-Improved system performance
-
-Freelance Developer
-2024 - Present
-Created professional websites
-Worked with multiple clients"""
-        )
+        
+    st.session_state.experience = st.text_area(
+    "Experience",
+    value=st.session_state.experience,
+    height=350,
+    placeholder=(
+        "Software Developer | ABC Company\n"
+        "2025 - Present\n"
+        "Developed automation tools\n"
+        "Built modern web applications\n"
+        "Improved system performance\n"
+        "\n"
+        "Freelance Developer\n"
+        "2024 - Present\n"
+        "Created professional websites\n"
+        "Worked with multiple clients"
+    )
+)
 
 
     # EDUCATION
@@ -2468,14 +2471,15 @@ Worked with multiple clients"""
             "Education",
             value=st.session_state.education,
             height=300,
-            placeholder="""BS Software Engineering | University Name
-2025 - Present
-Relevant coursework and achievements
-
-FSc Pre-Medical | College Name
-2023 - 2025
-Science and academic achievements"""
-        )
+            placeholder=(
+    "BS Software Engineering | University Name\n"
+    "2025 - Present\n"
+    "Relevant coursework and achievements\n"
+    "\n"
+    "FSc Pre-Medical | College Name\n"
+    "2023 - 2025\n"
+    "Science and academic achievements"
+)
 
 
     # PROJECTS
@@ -2489,14 +2493,15 @@ Science and academic achievements"""
             "Projects",
             value=st.session_state.projects,
             height=320,
-            placeholder="""CV Automator
-Python | Streamlit
-Built an automated professional CV generator
-
-AI Study Assistant
-Python | AI
-Created a personalized student study planner"""
-        )
+            placeholder=(
+    "CV Automator\n"
+    "Python | Streamlit\n"
+    "Built an automated professional CV generator\n"
+    "\n"
+    "AI Study Assistant\n"
+    "Python | AI\n"
+    "Created a personalized student study planner"
+)
 
 
     # SKILLS
@@ -2511,11 +2516,13 @@ Created a personalized student study planner"""
             "Skills",
             value=st.session_state.skills,
             height=280,
-            placeholder="""Python | 90
-C++ | 80
-HTML | 95
-CSS | 90
-JavaScript | 75"""
+            placeholder=(
+    "Python | 90\n"
+    "C++ | 80\n"
+    "HTML | 95\n"
+    "CSS | 90\n"
+    "JavaScript | 75"
+)
         )
 
 
@@ -2535,8 +2542,8 @@ Urdu"""
             "Certifications",
             value=st.session_state.certifications,
             height=150,
-            placeholder="""Python Programming
-Web Development"""
+            placeholder="Python Programming\n"
+"Web Development"
         )
 
 
