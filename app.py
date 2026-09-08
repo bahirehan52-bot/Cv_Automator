@@ -2249,25 +2249,12 @@ with preview:
 # =========================================================
 
 st.markdown(
-    """
-    <div class="hero">
-
-        <h1>
-            CV Automator
-            <span style="color:#ffc107;">
-                PREMIUM
-            </span>
-        </h1>
-
-        <p>
-            Modern geometric CV - Profile photo - Live preview - Professional PDF export
-        </p>
-
-    </div>
-    """,
+    '<div class="hero">'
+    '<h1>CV Automator <span style="color:#ffc107;">PREMIUM</span></h1>'
+    '<p>Modern geometric CV - Profile photo - Live preview - Professional PDF export</p>'
+    '</div>',
     unsafe_allow_html=True
-    )
-
+)
 
 # =========================================================
 # SIDEBAR SETTINGS
