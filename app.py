@@ -2588,84 +2588,84 @@ with preview:
 
 
     st.markdown(
-        f"""
-        <div class="score-card">
+    f"""
+    <div class="score-card">
 
-            <div class="score-label">
-                CV COMPLETENESS
-            </div>
-
-            <div class="score-number"
-                 style="color:{accent};">
-                {score}/100
-            </div>
-
+        <div class="score-label">
+            CV COMPLETENESS
         </div>
-        """,
-        unsafe_allow_html=True
-    )
+
+        <div
+            class="score-number"
+            style="color:{accent};"
+        >
+            {score}/100
+        </div>
+
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 
     # PHOTO
-    if st.session_state.photo:
+    # =========================================================
+# PHOTO
+# =========================================================
 
-        encoded = base64.b64encode(
-            st.session_state.photo
-        ).decode()
+if st.session_state.photo:
 
-        photo_html = f"""
-        <img
-            class="profile-photo"
-            src="data:image/jpeg;base64,{encoded}"
-            style="
-                box-shadow:
-                0 0 0 5px {accent};
-            "
-        >
-        """
+    encoded = base64.b64encode(
+        st.session_state.photo
+    ).decode("utf-8")
 
-    else:
+    photo_html = f'''
+    <img
+        class="profile-photo"
+        src="data:image/jpeg;base64,{encoded}"
+        style="box-shadow: 0 0 0 5px {accent};"
+    >
+    '''
 
-        photo_html = f"""
-        <div
-            class="profile-photo"
-            style="
-                background:#2a2a2a;
-                display:flex;
-                align-items:center;
-                justify-content:center;
-                font-size:55px;
-                box-shadow:
-                0 0 0 5px {accent};
-            "
-        >
-            👤
+else:
+
+    photo_html = f'''
+    <div
+        class="profile-photo"
+        style="
+            background: #2a2a2a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 55px;
+            box-shadow: 0 0 0 5px {accent};
+        "
+    >
+        &#128100;
+    </div>
+    '''
+
+
+contact_html = ''
+
+contacts = [
+    ('Email:', st.session_state.email),
+    ('Phone:', st.session_state.phone),
+    ('Location:', st.session_state.location),
+    ('LinkedIn:', st.session_state.linkedin),
+    ('Website:', st.session_state.website)
+]
+
+for icon, value in contacts:
+
+    if value and value.strip():
+
+        contact_html += f'''
+        <div class="sidebar-text">
+            <strong>{esc(icon)}</strong>
+            {esc(value)}
         </div>
-        """
-
-
-    # CONTACT
-    contact_html = ""
-
-    contacts = [
-        ("✉", st.session_state.email),
-        ("☎", st.session_state.phone),
-        ("⌖", st.session_state.location),
-        ("in", st.session_state.linkedin),
-        ("⌘", st.session_state.website)
-    ]
-
-
-    for icon, value in contacts:
-
-        if value.strip():
-
-            contact_html += f"""
-            <div class="sidebar-text">
-                <b>{icon}</b>
-                {esc(value)}
-            </div>
-            """
+        '''
 
 
     # MAIN SECTIONS
