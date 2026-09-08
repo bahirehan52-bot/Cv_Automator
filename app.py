@@ -2610,40 +2610,40 @@ with preview:
 
     # PHOTO
     # =========================================================
-# PHOTO
-# =========================================================
+    # PHOTO
+    # =========================================================
 
-if st.session_state.photo:
+    if st.session_state.photo:
 
-    encoded = base64.b64encode(
-        st.session_state.photo
-    ).decode("utf-8")
+        encoded = base64.b64encode(
+            st.session_state.photo
+        ).decode("utf-8")
 
-    photo_html = f'''
-    <img
-        class="profile-photo"
-        src="data:image/jpeg;base64,{encoded}"
-        style="box-shadow: 0 0 0 5px {accent};"
-    >
-    '''
+        photo_html = f'''
+        <img
+            class="profile-photo"
+            src="data:image/jpeg;base64,{encoded}"
+            style="box-shadow: 0 0 0 5px {accent};"
+        >
+        '''
 
-else:
+    else:
 
-    photo_html = f'''
-    <div
-        class="profile-photo"
-        style="
-            background: #2a2a2a;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 55px;
-            box-shadow: 0 0 0 5px {accent};
-        "
-    >
-        &#128100;
-    </div>
-    '''
+        photo_html = f'''
+        <div
+            class="profile-photo"
+            style="
+                background: #2a2a2a;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 55px;
+                box-shadow: 0 0 0 5px {accent};
+            "
+        >
+            &#128100;
+        </div>
+        '''
 
 
 contact_html = ''
@@ -2712,64 +2712,11 @@ for icon, value in contacts:
         "Certifications",
         st.session_state.certifications
     )
-
 # FULL CV
 cv_html = f"""
-<style>
-
-.cv-sidebar {{
-    background: {sidebar_color};
-}}
-
-.cv-sidebar::before {{
-    background: linear-gradient(
-        135deg,
-        {accent},
-        #ff9800
-    );
-}}
-
-.cv-sidebar::after {{
-    background: {accent};
-}}
-
-.sidebar-role,
-.sidebar-section {{
-    color: {accent};
-}}
-
-.sidebar-section {{
-    border-left-color: {accent};
-}}
-
-.skill-bar {{
-    background: {accent};
-}}
-
-.main-section {{
-    border-bottom-color: {accent};
-}}
-
-.experience-item {{
-    border-left-color: {accent};
-}}
-
-.experience-meta {{
-    color: {accent};
-}}
-
-.cv-role {{
-    color: {accent};
-}}
-
-</style>
-
 <div class="cv-wrapper">
 
-    <!-- LEFT SIDEBAR -->
-
     <div class="cv-sidebar">
-
         {photo_html}
 
         <div class="sidebar-name">
@@ -2780,21 +2727,11 @@ cv_html = f"""
             {esc(st.session_state.role) or "PROFESSIONAL TITLE"}
         </div>
 
-        <div class="sidebar-section">
-            CONTACT
-        </div>
-
         {contact_html}
-
         {skill_html(accent)}
-
         {languages_html}
-
         {certifications_html}
-
     </div>
-
-    <!-- RIGHT SIDE -->
 
     <div class="cv-main">
 
@@ -2807,17 +2744,15 @@ cv_html = f"""
         </div>
 
         {summary_html}
-
         {education_html}
-
         {experience_html}
-
         {projects_html}
 
     </div>
 
 </div>
 """
+
 
 st.markdown(
     cv_html,
