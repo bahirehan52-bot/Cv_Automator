@@ -1323,7 +1323,6 @@ def make_pdf():
         c.drawString(
             side_x,
             side_y,
-            "
             "SKILLS"
         )
 
