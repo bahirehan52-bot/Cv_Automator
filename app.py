@@ -1,9 +1,7 @@
 import streamlit as st
 from PIL import Image
 from io import BytesIO
-import base64
-import html
-import re
+import base64, html, re
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
@@ -11,1590 +9,288 @@ from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
 
+st.set_page_config(page_title="CV Automator Premium", page_icon="📄", layout="wide")
 
-st.set_page_config(
-    page_title="CV Automator Premium",
-    page_icon="📄",
-    layout="wide"
-)
+def esc(x):
+    return html.escape(str(x or ""))
 
+def blocks(text):
+    return [[x.strip() for x in b.splitlines() if x.strip()]
+            for b in re.split(r"\n\s*\n", text or "") if b.strip()]
 
-def esc(value):
-    return html.escape(str(value or ""))
-
-
-def parse_blocks(text):
-    if not text or not text.strip():
-        return []
-    return [
-        [line.strip() for line in block.splitlines() if line.strip()]
-        for block in re.split(r"\n\s*\n", text.strip())
-        if block.strip()
-    ]
-
-
-def parse_skills(text):
-    result = []
-    defaults = [95, 90, 85, 80, 75, 70]
-
-    for index, line in enumerate((text or "").splitlines()):
-        line = line.strip()
-        if not line:
-            continue
-
+def skills(text):
+    out=[]
+    fallback=[95,90,85,80,75,70,65,60]
+    for i,line in enumerate((text or "").splitlines()):
+        if not line.strip(): continue
         if "|" in line:
-            name, level = line.split("|", 1)
-            name = name.strip()
-            try:
-                percent = int(re.sub(r"[^0-9]", "", level))
-            except (ValueError, TypeError):
-                percent = defaults[index % len(defaults)]
+            name,p=line.split("|",1)
+            try: pct=int(re.sub(r"\D","",p))
+            except: pct=fallback[i%len(fallback)]
         else:
-            name = line
-            percent = defaults[index % len(defaults)]
+            name=line; pct=fallback[i%len(fallback)]
+        out.append((name.strip(),max(0,min(100,pct))))
+    return out
 
-        result.append((name, max(0, min(100, percent))))
+def wrap(c,text,width,font,size):
+    words=str(text).split(); lines=[]; cur=""
+    for w in words:
+        test=(cur+" "+w).strip()
+        if c.stringWidth(test,font,size)<=width: cur=test
+        else:
+            if cur: lines.append(cur)
+            cur=w
+    if cur: lines.append(cur)
+    return lines
 
-    return result
+def drawwrap(c,text,x,y,width,font,size,leading,col,max_lines=None):
+    ls=wrap(c,text,width,font,size)
+    if max_lines: ls=ls[:max_lines]
+    c.setFont(font,size); c.setFillColor(col)
+    for line in ls:
+        c.drawString(x,y,line); y-=leading
+    return y
 
+defaults={"name":"","role":"","email":"","phone":"","location":"","linkedin":"",
+"website":"","summary":"","experience":"","education":"","projects":"","skills":"",
+"languages":"","certifications":"","photo":None}
+for k,v in defaults.items():
+    if k not in st.session_state: st.session_state[k]=v
 
-def render_main_section(title, content, accent):
-    if not content or not content.strip():
-        return ""
-
-    result = f'''
-    <div class="main-section" style="--accent:{accent};">
-        {esc(title.upper())}
-    </div>
-    '''
-
-    for block in parse_blocks(content):
-        result += '<div class="timeline-item">'
-
-        if block:
-            result += f'''
-            <div class="timeline-title">{esc(block[0])}</div>
-            '''
-
-        if len(block) > 1:
-            result += f'''
-            <div class="timeline-meta">{esc(block[1])}</div>
-            '''
-
-        for line in block[2:]:
-            clean = line.lstrip("-• ").strip()
-            if clean:
-                result += f'''
-                <div class="timeline-text">• {esc(clean)}</div>
-                '''
-
-        result += "</div>"
-
-    return result
-
-
-def render_sidebar_list(title, text, accent):
-    if not text or not text.strip():
-        return ""
-
-    result = f'''
-    <div class="sidebar-section" style="--accent:{accent};">
-        {esc(title.upper())}
-    </div>
-    '''
-
-    for line in text.splitlines():
-        if line.strip():
-            result += f'''
-            <div class="sidebar-text">• {esc(line.strip())}</div>
-            '''
-
-    return result
-
-
-def skill_html(skills, accent):
-    parsed = parse_skills(skills)
-
-    if not parsed:
-        return ""
-
-    result = f'''
-    <div class="sidebar-section" style="--accent:{accent};">
-        SKILLS
-    </div>
-    '''
-
-    for name, percent in parsed:
-        result += f'''
-        <div class="skill-item">
-            <div class="skill-head">
-                <span>{esc(name)}</span>
-                <span>{percent}%</span>
-            </div>
-            <div class="skill-track">
-                <div class="skill-bar"
-                     style="width:{percent}%; background:{accent};">
-                </div>
-            </div>
-        </div>
-        '''
-
-    return result
-
-
-st.markdown(
-    '''
+st.markdown("""
 <style>
-.stApp {
-    background: #080b12;
-}
-.block-container {
-    max-width: 1550px;
-    padding-top: 24px;
-    padding-bottom: 50px;
-}
-section[data-testid="stSidebar"] {
-    background: #0d1119;
-}
-.hero {
-    position: relative;
-    overflow: hidden;
-    padding: 34px;
-    margin-bottom: 24px;
-    border: 1px solid #283348;
-    border-radius: 24px;
-    background:
-        radial-gradient(circle at 90% 15%, rgba(255,193,7,.20), transparent 30%),
-        linear-gradient(135deg, #101827, #1b2435);
-}
-.hero h1 {
-    margin: 0;
-    color: #ffffff;
-    font-size: 42px;
-    font-weight: 900;
-}
-.hero p {
-    margin: 8px 0 0;
-    color: #9ca3af;
-    font-size: 15px;
-}
-.score-card {
-    padding: 18px 22px;
-    margin-bottom: 18px;
-    border-radius: 16px;
-    border: 1px solid #2d3748;
-    background: linear-gradient(135deg, #151b26, #232b3a);
-}
-.score-label {
-    color: #9ca3af;
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 2px;
-}
-.score-number {
-    color: #ffc107;
-    font-size: 34px;
-    font-weight: 900;
-}
-.cv-wrapper {
-    width: 100%;
-    min-height: 1120px;
-    display: flex;
-    overflow: hidden;
-    position: relative;
-    background: #ffffff;
-    box-shadow: 0 25px 80px rgba(0,0,0,.55);
-    font-family: Arial, Helvetica, sans-serif;
-}
-.cv-sidebar {
-    width: 36%;
-    min-height: 1120px;
-    position: relative;
-    overflow: hidden;
-    padding: 30px 25px;
-    color: #ffffff;
-    background: #151515;
-}
-.cv-sidebar::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 285px;
-    background: linear-gradient(135deg, var(--accent), #ff9800);
-    clip-path: polygon(0 0, 100% 0, 100% 64%, 44% 100%, 0 77%);
-}
-.cv-sidebar::after {
-    content: "";
-    position: absolute;
-    right: -40px;
-    bottom: -50px;
-    width: 190px;
-    height: 190px;
-    border: 28px solid var(--accent);
-    transform: rotate(45deg);
-    opacity: .9;
-}
-.cv-sidebar > * {
-    position: relative;
-    z-index: 2;
-}
-.cv-main {
-    width: 64%;
-    min-height: 1120px;
-    position: relative;
-    overflow: hidden;
-    padding: 58px 48px;
-    color: #171717;
-    background: linear-gradient(135deg, #ffffff, #f3f4f6);
-}
-.cv-main::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 320px;
-    height: 115px;
-    background: #151515;
-    clip-path: polygon(25% 0, 100% 0, 100% 100%, 0 100%);
-}
-.cv-main::after {
-    content: "";
-    position: absolute;
-    right: -40px;
-    bottom: -70px;
-    width: 280px;
-    height: 280px;
-    background: var(--accent);
-    opacity: .12;
-    transform: rotate(45deg);
-}
-.profile-photo, .photo-placeholder {
-    width: 158px;
-    height: 158px;
-    display: block;
-    margin: 8px auto 25px;
-    object-fit: cover;
-    border-radius: 50%;
-    border: 7px solid #151515;
-    box-shadow: 0 0 0 5px var(--accent);
-}
-.photo-placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #292929;
-    font-size: 58px;
-}
-.sidebar-name {
-    text-align: center;
-    color: #ffffff;
-    font-size: 22px;
-    font-weight: 900;
-    line-height: 1.15;
-}
-.sidebar-role {
-    margin-top: 7px;
-    margin-bottom: 28px;
-    text-align: center;
-    color: var(--accent);
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 1.4px;
-    text-transform: uppercase;
-}
-.sidebar-section {
-    margin-top: 24px;
-    margin-bottom: 12px;
-    padding-left: 10px;
-    border-left: 4px solid var(--accent);
-    color: var(--accent);
-    font-size: 11px;
-    font-weight: 900;
-    letter-spacing: 1.8px;
-}
-.sidebar-text {
-    margin-bottom: 8px;
-    color: #e5e7eb;
-    font-size: 9.5px;
-    line-height: 1.55;
-    word-break: break-word;
-}
-.skill-item {
-    margin-bottom: 12px;
-}
-.skill-head {
-    display: flex;
-    justify-content: space-between;
-    gap: 8px;
-    margin-bottom: 5px;
-    color: #ffffff;
-    font-size: 9.5px;
-    font-weight: 700;
-}
-.skill-track {
-    height: 5px;
-    overflow: hidden;
-    border-radius: 10px;
-    background: rgba(255,255,255,.16);
-}
-.skill-bar {
-    height: 100%;
-    border-radius: 10px;
-}
-.cv-name {
-    position: relative;
-    z-index: 2;
-    max-width: 78%;
-    margin-top: 12px;
-    color: #151515;
-    font-size: 39px;
-    font-weight: 900;
-    line-height: 1.02;
-    letter-spacing: .5px;
-    text-transform: uppercase;
-}
-.cv-role {
-    position: relative;
-    z-index: 2;
-    display: inline-block;
-    margin-top: 11px;
-    padding: 7px 16px;
-    color: var(--accent);
-    background: #151515;
-    font-size: 10px;
-    font-weight: 900;
-    letter-spacing: 1.2px;
-    text-transform: uppercase;
-    clip-path: polygon(0 0, 100% 0, 92% 100%, 0 100%);
-}
-.main-section {
-    position: relative;
-    z-index: 2;
-    margin-top: 30px;
-    margin-bottom: 15px;
-    padding-bottom: 7px;
-    border-bottom: 3px solid var(--accent);
-    color: #151515;
-    font-size: 17px;
-    font-weight: 900;
-    letter-spacing: 1.5px;
-}
-.summary-box {
-    position: relative;
-    z-index: 2;
-    color: #4b5563;
-    font-size: 10.5px;
-    line-height: 1.7;
-}
-.timeline-item {
-    position: relative;
-    z-index: 2;
-    margin-bottom: 17px;
-    padding-left: 15px;
-    border-left: 3px solid var(--accent);
-}
-.timeline-title {
-    color: #151515;
-    font-size: 11.5px;
-    font-weight: 900;
-}
-.timeline-meta {
-    margin: 4px 0 6px;
-    color: #9a6900;
-    font-size: 9px;
-    font-weight: 800;
-}
-.timeline-text {
-    color: #4b5563;
-    font-size: 9.5px;
-    line-height: 1.6;
-}
-@media (max-width: 900px) {
-    .cv-wrapper {
-        flex-direction: column;
-    }
-    .cv-sidebar, .cv-main {
-        width: 100%;
-    }
-    .cv-name {
-        max-width: 100%;
-    }
-}
+.stApp{background:#080b12}.block-container{max-width:1500px}
+.hero{padding:28px;border-radius:20px;background:linear-gradient(135deg,#111827,#202938);
+border:1px solid #303b50;margin-bottom:20px}.hero h1{color:white;margin:0;font-weight:900}
+.hero p{color:#9ca3af}.score{padding:14px 18px;background:#171d28;border:1px solid #303b50;
+border-radius:14px;margin-bottom:15px}.score b{font-size:30px}
+.cv{width:794px;height:1123px;display:flex;overflow:hidden;background:white;font-family:Arial;
+box-shadow:0 20px 70px #0008}.side{width:286px;flex:0 0 286px;background:#151515;color:white;
+padding:22px;box-sizing:border-box;position:relative;overflow:hidden}.side:before{content:"";
+position:absolute;left:0;top:0;width:100%;height:230px;background:linear-gradient(135deg,var(--a),#ff9800);
+clip-path:polygon(0 0,100% 0,100% 62%,45% 100%,0 77%)}.side>*{position:relative;z-index:2}
+.main{width:508px;flex:0 0 508px;padding:48px 38px;box-sizing:border-box;overflow:hidden;
+position:relative;background:linear-gradient(135deg,#fff,#f4f4f5)}.main:before{content:"";
+position:absolute;right:0;top:0;width:220px;height:78px;background:#151515;
+clip-path:polygon(28% 0,100% 0,100% 100%,0 100%)}.photo{width:135px;height:135px;object-fit:cover;
+border-radius:50%;display:block;margin:8px auto 18px;border:6px solid #151515;box-shadow:0 0 0 4px var(--a)}
+.placeholder{width:135px;height:135px;border-radius:50%;margin:8px auto 18px;background:#292929;
+display:flex;align-items:center;justify-content:center;font-size:48px;border:6px solid #151515;
+box-shadow:0 0 0 4px var(--a)}.sname{text-align:center;font-size:19px;font-weight:900}.role{
+text-align:center;color:var(--a);font-size:9px;font-weight:800;letter-spacing:1px;margin:6px 0 18px}
+.sh{color:var(--a);font-size:9px;font-weight:900;letter-spacing:1.5px;border-left:3px solid var(--a);
+padding-left:7px;margin:14px 0 7px}.st{font-size:8px;line-height:1.4;color:#e5e7eb;margin:3px 0;
+word-break:break-word}.skill{margin:6px 0}.skillhead{display:flex;justify-content:space-between;
+font-size:8px;font-weight:700}.track{height:4px;background:#ffffff22;border-radius:5px;margin-top:3px}
+.bar{height:100%;background:var(--a);border-radius:5px}.mn{font-size:31px;font-weight:900;
+line-height:1.02;max-width:82%;position:relative;z-index:2}.mr{display:inline-block;background:#151515;
+color:var(--a);padding:6px 12px;margin-top:9px;font-size:8px;font-weight:900;letter-spacing:1px;
+position:relative;z-index:2}.sec{font-size:13px;font-weight:900;border-bottom:2px solid var(--a);
+padding-bottom:5px;margin:19px 0 9px;position:relative;z-index:2}.summary{font-size:8.5px;
+line-height:1.5;color:#4b5563;position:relative;z-index:2}.item{border-left:2px solid var(--a);
+padding-left:9px;margin-bottom:9px;position:relative;z-index:2}.it{font-size:9.5px;font-weight:900}
+.im{font-size:7.5px;font-weight:800;color:#9a6900;margin:2px 0 4px}.itxt{font-size:7.7px;
+line-height:1.4;color:#4b5563}
 </style>
-    ''',
-    unsafe_allow_html=True
-)
+""",unsafe_allow_html=True)
 
-
-defaults = {
-    "name": "",
-    "role": "",
-    "email": "",
-    "phone": "",
-    "location": "",
-    "linkedin": "",
-    "website": "",
-    "summary": "",
-    "experience": "",
-    "education": "",
-    "projects": "",
-    "skills": "",
-    "languages": "",
-    "certifications": "",
-    "photo": None
-}
-
-for key, value in defaults.items():
-    if key not in st.session_state:
-        st.session_state[key] = value
-
-
-st.markdown(
-    '''
-    <div class="hero">
-        <h1>CV Automator <span style="color:#ffc107;">PREMIUM</span></h1>
-        <p>Modern geometric CV • Photo • Live preview • A4 PDF export</p>
-    </div>
-    ''',
-    unsafe_allow_html=True
-)
-
+st.markdown("""<div class="hero"><h1>CV Automator <span style="color:#FFC107">PREMIUM</span></h1>
+<p>Professional single-page A4 CV — photo, skills, languages and certificates stay on Page 1.</p></div>""",unsafe_allow_html=True)
 
 with st.sidebar:
-    st.header("🎨 Design")
+    st.header("Design")
+    accent=st.color_picker("Accent","#FFC107")
+    sidebar=st.color_picker("Sidebar","#151515")
 
-    accent = st.color_picker(
-        "Accent Color",
-        "#FFC107"
-    )
-
-    sidebar_color = st.color_picker(
-        "Sidebar Color",
-        "#151515"
-    )
-
-    st.divider()
-    st.caption("Premium geometric A4 template")
-
-
-editor, preview = st.columns(
-    [0.86, 1.14],
-    gap="large"
-)
-
-
-with editor:
-
-    tabs = st.tabs([
-        "👤 Personal",
-        "🧠 Profile",
-        "💼 Experience",
-        "🎓 Education",
-        "🚀 Projects",
-        "🛠 Skills",
-        "📜 More"
-    ])
-
-    with tabs[0]:
-
-        st.markdown("### 📸 Profile Picture")
-
-        uploaded = st.file_uploader(
-            "Upload Picture",
-            type=["jpg", "jpeg", "png", "webp"]
-        )
-
-        if uploaded is not None:
-            try:
-                image = Image.open(uploaded).convert("RGB")
-                image_buffer = BytesIO()
-                image.save(
-                    image_buffer,
-                    format="JPEG",
-                    quality=95
-                )
-                st.session_state.photo = image_buffer.getvalue()
-            except Exception as exc:
-                st.error(f"Image error: {exc}")
-
+left,right=st.columns([.82,1.18],gap="large")
+with left:
+    t=st.tabs(["Personal","Profile","Experience","Education","Projects","Skills","More"])
+    with t[0]:
+        f=st.file_uploader("Profile Picture",type=["jpg","jpeg","png","webp"])
+        if f:
+            im=Image.open(f).convert("RGB"); b=BytesIO(); im.save(b,"JPEG",quality=95)
+            st.session_state.photo=b.getvalue()
         if st.session_state.photo:
-
-            st.image(
-                st.session_state.photo,
-                width=150
-            )
-
-            if st.button("Remove Picture"):
-                st.session_state.photo = None
-                st.rerun()
-
-        st.divider()
-
-        st.session_state.name = st.text_input(
-            "Full Name",
-            value=st.session_state.name,
-            placeholder="Muhammad Rehan Ahmed"
-        )
-
-        st.session_state.role = st.text_input(
-            "Professional Title",
-            value=st.session_state.role,
-            placeholder="Software Engineer"
-        )
-
-        st.session_state.email = st.text_input(
-            "Email",
-            value=st.session_state.email,
-            placeholder="you@example.com"
-        )
-
-        st.session_state.phone = st.text_input(
-            "Phone",
-            value=st.session_state.phone,
-            placeholder="+92 300 1234567"
-        )
-
-        st.session_state.location = st.text_input(
-            "Location",
-            value=st.session_state.location,
-            placeholder="Faisalabad, Pakistan"
-        )
-
-        st.session_state.linkedin = st.text_input(
-            "LinkedIn",
-            value=st.session_state.linkedin,
-            placeholder="linkedin.com/in/username"
-        )
-
-        st.session_state.website = st.text_input(
-            "Portfolio / Website",
-            value=st.session_state.website,
-            placeholder="yourwebsite.com"
-        )
-
-    with tabs[1]:
-
-        st.session_state.summary = st.text_area(
-            "Professional Summary",
-            value=st.session_state.summary,
-            height=190,
-            placeholder="Write a concise professional summary..."
-        )
-
-    with tabs[2]:
-
-        st.session_state.experience = st.text_area(
-            "Experience",
-            value=st.session_state.experience,
-            height=280,
-            placeholder='''Software Developer | ABC Company
+            st.image(st.session_state.photo,width=120)
+        st.session_state.name=st.text_input("Full Name",st.session_state.name)
+        st.session_state.role=st.text_input("Professional Title",st.session_state.role)
+        st.session_state.email=st.text_input("Email",st.session_state.email)
+        st.session_state.phone=st.text_input("Phone",st.session_state.phone)
+        st.session_state.location=st.text_input("Location",st.session_state.location)
+        st.session_state.linkedin=st.text_input("LinkedIn",st.session_state.linkedin)
+        st.session_state.website=st.text_input("Portfolio / Website",st.session_state.website)
+    with t[1]:
+        st.session_state.summary=st.text_area("Professional Summary",st.session_state.summary,height=180)
+    with t[2]:
+        st.session_state.experience=st.text_area("Experience",st.session_state.experience,height=270,
+        placeholder="""Junior Web Developer — Freelance
 2025 - 2026
-Developed automation tools
-Built web applications
-Improved system performance
+Developed responsive websites using HTML, CSS, JavaScript and Python.
+Built small web applications according to client requirements.
+Improved performance and user experience.""")
+    with t[3]:
+        st.session_state.education=st.text_area("Education",st.session_state.education,height=220,
+        placeholder="""FSc Pre-Engineering — 1st Year
+Punjab Board
+2026 - Present
 
-Freelance Developer | Self Employed
-2024 - Present
-Created websites
-Worked with clients'''
-        )
-
-    with tabs[3]:
-
-        st.session_state.education = st.text_area(
-            "Education",
-            value=st.session_state.education,
-            height=230,
-            placeholder='''BS Software Engineering
-ABC University
-2024 - 2028
-
-Intermediate
-XYZ College
-2022 - 2024'''
-        )
-
-    with tabs[4]:
-
-        st.session_state.projects = st.text_area(
-            "Projects",
-            value=st.session_state.projects,
-            height=250,
-            placeholder='''CV Automator
-Python / Streamlit
-Built a premium CV generation application
-Created A4 PDF export
-
-AI Study Assistant
+Matriculation (Science)
+Punjab Board
+Completed 2026""")
+    with t[4]:
+        st.session_state.projects=st.text_area("Projects",st.session_state.projects,height=260,
+        placeholder="""AI Study Assistant
 Python / AI
-Built an AI-powered study planner'''
-        )
+Developed an AI-based study planning application.
+Generates personalized schedules and MCQs.
 
-    with tabs[5]:
+CV Automator
+Python / Streamlit
+Built a professional CV generation application with PDF export.
 
-        st.info("One skill per line. Optional format: Python | 90")
-
-        st.session_state.skills = st.text_area(
-            "Skills",
-            value=st.session_state.skills,
-            height=230,
-            placeholder='''Python | 95
+Personal Portfolio Website
+HTML / CSS / JavaScript
+Created a responsive portfolio website.""")
+    with t[5]:
+        st.session_state.skills=st.text_area("Skills",st.session_state.skills,height=220,
+        placeholder="""Python | 95
 Streamlit | 90
 HTML | 90
 CSS | 85
 JavaScript | 75
-Git | 80'''
-        )
+Git & GitHub | 80
+C++ | 70""")
+    with t[6]:
+        st.session_state.languages=st.text_area("Languages",st.session_state.languages,height=110,
+        placeholder="""English — Intermediate
+Urdu — Native
+Punjabi — Fluent""")
+        st.session_state.certifications=st.text_area("Certificates",st.session_state.certifications,height=110,
+        placeholder="""Python Programming Certificate
+Web Development Certificate
+AI Fundamentals Certificate""")
 
-    with tabs[6]:
-
-        st.session_state.languages = st.text_area(
-            "Languages",
-            value=st.session_state.languages,
-            height=130,
-            placeholder='''English
-Urdu
-Punjabi'''
-        )
-
-        st.session_state.certifications = st.text_area(
-            "Certifications",
-            value=st.session_state.certifications,
-            height=130,
-            placeholder='''Python Certificate
-Web Development Certificate'''
-        )
-
-
-with preview:
-
-    st.markdown("### 👁️ Premium Live Preview")
-
-    score_fields = [
-        st.session_state.name,
-        st.session_state.role,
-        st.session_state.email,
-        st.session_state.summary,
-        st.session_state.experience,
-        st.session_state.education,
-        st.session_state.projects,
-        st.session_state.skills
-    ]
-
-    completed = sum(
-        bool(str(field).strip())
-        for field in score_fields
-    )
-
-    score = round(
-        completed / len(score_fields) * 100
-    )
-
-    st.markdown(
-        f'''
-        <div class="score-card">
-            <div class="score-label">CV COMPLETENESS</div>
-            <div class="score-number" style="color:{accent};">
-                {score}/100
-            </div>
-        </div>
-        ''',
-        unsafe_allow_html=True
-    )
+with right:
+    vals=[st.session_state[k] for k in ["name","role","email","summary","experience","education",
+    "projects","skills","languages","certifications"]]
+    score=round(sum(bool(str(x).strip()) for x in vals)/len(vals)*100)
+    st.markdown(f'<div class="score">CV COMPLETENESS<br><b style="color:{accent}">{score}%</b></div>',
+                unsafe_allow_html=True)
 
     if st.session_state.photo:
+        enc=base64.b64encode(st.session_state.photo).decode()
+        ph=f'<img class="photo" src="data:image/jpeg;base64,{enc}">'
+    else: ph='<div class="placeholder">👤</div>'
 
-        encoded = base64.b64encode(
-            st.session_state.photo
-        ).decode("utf-8")
+    contact="".join(f'<div class="st">{esc(x)}</div>' for x in
+                    [st.session_state.email,st.session_state.phone,st.session_state.location,
+                     st.session_state.linkedin,st.session_state.website] if x.strip())
+    sk=""
+    for n,p in skills(st.session_state.skills)[:7]:
+        sk+=f'<div class="skill"><div class="skillhead"><span>{esc(n)}</span><span>{p}%</span></div><div class="track"><div class="bar" style="width:{p}%"></div></div></div>'
 
-        photo_html = f'''
-        <img
-            class="profile-photo"
-            src="data:image/jpeg;base64,{encoded}"
-            style="--accent:{accent};"
-        >
-        '''
+    def side_text(title,text):
+        a=[x.strip() for x in (text or "").splitlines() if x.strip()]
+        return (f'<div class="sh">{title}</div>'+''.join(f'<div class="st">• {esc(x)}</div>' for x in a[:5])) if a else ""
 
+    def main_sec(title,text):
+        if not text.strip(): return ""
+        z=f'<div class="sec">{title}</div>'
+        for b in blocks(text):
+            z+='<div class="item"><div class="it">'+esc(b[0])+'</div>'
+            if len(b)>1:z+=f'<div class="im">{esc(b[1])}</div>'
+            for x in b[2:]:z+=f'<div class="itxt">• {esc(x.lstrip("-• ").strip())}</div>'
+            z+='</div>'
+        return z
+
+    summary=(f'<div class="sec">ABOUT ME</div><div class="summary">{esc(st.session_state.summary)}</div>'
+             if st.session_state.summary.strip() else "")
+
+    st.markdown(f"""<div class="cv" style="--a:{accent}">
+    <aside class="side" style="background:{sidebar}">{ph}
+    <div class="sname">{esc(st.session_state.name) or "YOUR NAME"}</div>
+    <div class="role">{esc(st.session_state.role) or "PROFESSIONAL TITLE"}</div>
+    <div class="sh">CONTACT</div>{contact}
+    <div class="sh">SKILLS</div>{sk}
+    {side_text("LANGUAGES",st.session_state.languages)}
+    {side_text("CERTIFICATIONS",st.session_state.certifications)}
+    </aside>
+    <main class="main"><div class="mn">{esc(st.session_state.name) or "YOUR NAME"}</div>
+    <div class="mr">{esc(st.session_state.role) or "PROFESSIONAL TITLE"}</div>
+    {summary}{main_sec("EDUCATION",st.session_state.education)}
+    {main_sec("EXPERIENCE",st.session_state.experience)}
+    {main_sec("PROJECTS",st.session_state.projects)}
+    </main></div>""",unsafe_allow_html=True)
+
+def pdf():
+    buf=BytesIO(); pw,ph=A4; c=canvas.Canvas(buf,pagesize=A4)
+    a=colors.HexColor(accent); s=colors.HexColor(sidebar); sw=70*mm
+    c.setFillColor(colors.white);c.rect(0,0,pw,ph,fill=1,stroke=0)
+    c.setFillColor(s);c.rect(0,0,sw,ph,fill=1,stroke=0)
+    p=c.beginPath();p.moveTo(0,ph);p.lineTo(sw,ph);p.lineTo(sw,ph-55*mm);p.lineTo(31*mm,ph-82*mm);p.lineTo(0,ph-65*mm);p.close()
+    c.setFillColor(a);c.drawPath(p,fill=1,stroke=0)
+    cx=sw/2; ps=43*mm; px=cx-ps/2; py=ph-62*mm
+    if st.session_state.photo:
+        c.drawImage(ImageReader(BytesIO(st.session_state.photo)),px,py,width=ps,height=ps,
+                    preserveAspectRatio=True,anchor="c",mask="auto")
     else:
-
-        photo_html = f'''
-        <div class="photo-placeholder" style="--accent:{accent};">
-            &#128100;
-        </div>
-        '''
-
-    contact_html = ""
-
-    contacts = [
-        ("Email", st.session_state.email),
-        ("Phone", st.session_state.phone),
-        ("Location", st.session_state.location),
-        ("LinkedIn", st.session_state.linkedin),
-        ("Website", st.session_state.website)
-    ]
-
-    for label, value in contacts:
-
-        if value and value.strip():
-
-            contact_html += f'''
-            <div class="sidebar-text">
-                <strong>{esc(label)}:</strong><br>
-                {esc(value)}
-            </div>
-            '''
-
-    languages_html = render_sidebar_list(
-        "Languages",
-        st.session_state.languages,
-        accent
-    )
-
-    certifications_html = render_sidebar_list(
-        "Certifications",
-        st.session_state.certifications,
-        accent
-    )
-
-    summary_html = ""
-
+        c.setFillColor(colors.HexColor("#292929"));c.circle(cx,py+ps/2,ps/2,fill=1,stroke=0)
+    sy=ph-69*mm;c.setFillColor(colors.white);c.setFont("Helvetica-Bold",8.5)
+    for x in wrap(c,st.session_state.name or "YOUR NAME",sw-20*mm,"Helvetica-Bold",8.5)[:2]:
+        c.drawCentredString(cx,sy,x);sy-=4*mm
+    c.setFillColor(a);c.setFont("Helvetica-Bold",6.5);c.drawCentredString(cx,sy-1*mm,
+        (st.session_state.role or "PROFESSIONAL TITLE")[:42]);sy-=10*mm
+    sx=10*mm;tw=sw-20*mm
+    def sh(t):
+        nonlocal sy
+        c.setFillColor(a);c.setFont("Helvetica-Bold",7.5);c.drawString(sx,sy,t);sy-=5*mm
+    sh("CONTACT")
+    for x in [st.session_state.email,st.session_state.phone,st.session_state.location,st.session_state.linkedin,st.session_state.website]:
+        if x.strip(): sy=drawwrap(c,x,sx,sy,tw,"Helvetica",6.1,2.8*mm,colors.HexColor("#eee"),2)-1.2*mm
+    if skills(st.session_state.skills):
+        sh("SKILLS")
+        for n,pct in skills(st.session_state.skills)[:7]:
+            c.setFillColor(colors.white);c.setFont("Helvetica",6.2);c.drawString(sx,sy,n[:25])
+            c.drawRightString(sx+tw,sy,f"{pct}%");sy-=3*mm
+            c.setFillColor(colors.HexColor("#444"));c.rect(sx,sy,tw,1.1*mm,fill=1,stroke=0)
+            c.setFillColor(a);c.rect(sx,sy,tw*pct/100,1.1*mm,fill=1,stroke=0);sy-=5*mm
+    for title,text in [("LANGUAGES",st.session_state.languages),("CERTIFICATIONS",st.session_state.certifications)]:
+        arr=[x.strip() for x in text.splitlines() if x.strip()]
+        if arr:
+            sh(title)
+            for x in arr[:5]:sy=drawwrap(c,"• "+x,sx,sy,tw,"Helvetica",6.1,2.8*mm,colors.HexColor("#eee"),2)-1*mm
+    mx=sw+10*mm;mw=pw-mx-10*mm;y=ph-20*mm
+    y=drawwrap(c,(st.session_state.name or "YOUR NAME").upper(),mx,y,mw,"Helvetica-Bold",19,8*mm,colors.HexColor("#151515"),2)
+    c.setFillColor(a);c.setFont("Helvetica-Bold",7.5);c.drawString(mx,y-1*mm,(st.session_state.role or "PROFESSIONAL TITLE")[:65]);y-=12*mm
     if st.session_state.summary.strip():
-
-        summary_html = f'''
-        <div class="main-section" style="--accent:{accent};">
-            ABOUT ME
-        </div>
-        <div class="summary-box">
-            {esc(st.session_state.summary)}
-        </div>
-        '''
-
-    education_html = render_main_section(
-        "Education",
-        st.session_state.education,
-        accent
-    )
-
-    experience_html = render_main_section(
-        "Experience",
-        st.session_state.experience,
-        accent
-    )
-
-    projects_html = render_main_section(
-        "Projects",
-        st.session_state.projects,
-        accent
-    )
-
-    cv_html = f'''
-    <style>
-    .cv-wrapper {{
-        --accent: {accent};
-    }}
-
-    .cv-sidebar {{
-        background: {sidebar_color};
-    }}
-    </style>
-
-    <div class="cv-wrapper">
-
-        <div class="cv-sidebar">
-
-            {photo_html}
-
-            <div class="sidebar-name">
-                {esc(st.session_state.name) or "YOUR NAME"}
-            </div>
-
-            <div class="sidebar-role" style="--accent:{accent};">
-                {esc(st.session_state.role) or "PROFESSIONAL TITLE"}
-            </div>
-
-            <div class="sidebar-section" style="--accent:{accent};">
-                CONTACT
-            </div>
-
-            {contact_html}
-
-            {skill_html(st.session_state.skills, accent)}
-
-            {languages_html}
-
-            {certifications_html}
-
-        </div>
-
-        <div class="cv-main">
-
-            <div class="cv-name">
-                {esc(st.session_state.name) or "YOUR NAME"}
-            </div>
-
-            <div class="cv-role" style="--accent:{accent};">
-                {esc(st.session_state.role) or "PROFESSIONAL TITLE"}
-            </div>
-
-            {summary_html}
-            {education_html}
-            {experience_html}
-            {projects_html}
-
-        </div>
-
-    </div>
-    '''
-
-    st.markdown(
-        cv_html,
-        unsafe_allow_html=True
-    )
-
-
-def draw_wrapped(c, text, x, y, max_width, font_name, font_size,
-                 leading, color_value, max_lines=None):
-
-    if not text:
-        return y
-
-    words = str(text).split()
-    line = ""
-    lines = []
-
-    for word in words:
-
-        test = (line + " " + word).strip()
-
-        if c.stringWidth(
-            test,
-            font_name,
-            font_size
-        ) <= max_width:
-
-            line = test
-
-        else:
-
-            if line:
-                lines.append(line)
-
-            line = word
-
-    if line:
-        lines.append(line)
-
-    if max_lines:
-        lines = lines[:max_lines]
-
-    c.setFillColor(color_value)
-    c.setFont(font_name, font_size)
-
-    for item in lines:
-
-        c.drawString(
-            x,
-            y,
-            item
-        )
-
-        y -= leading
-
-    return y
-
-
-def draw_pdf_section(
-    c,
-    title,
-    content,
-    x,
-    y,
-    width,
-    accent_color
-):
-
-    if not content or not content.strip():
-        return y
-
-    if y < 45 * mm:
-
-        c.showPage()
-
-        y = A4[1] - 22 * mm
-
-    c.setFillColor(
-        colors.HexColor("#151515")
-    )
-
-    c.setFont(
-        "Helvetica-Bold",
-        12
-    )
-
-    c.drawString(
-        x,
-        y,
-        title.upper()
-    )
-
-    y -= 3 * mm
-
-    c.setStrokeColor(
-        accent_color
-    )
-
-    c.setLineWidth(2)
-
-    c.line(
-        x,
-        y,
-        x + width,
-        y
-    )
-
-    y -= 7 * mm
-
-    for block in parse_blocks(content):
-
-        if not block:
-            continue
-
-        if y < 32 * mm:
-
-            c.showPage()
-
-            y = A4[1] - 22 * mm
-
-        c.setFillColor(
-            colors.HexColor("#151515")
-        )
-
-        y = draw_wrapped(
-            c,
-            block[0],
-            x + 3 * mm,
-            y,
-            width - 3 * mm,
-            "Helvetica-Bold",
-            9,
-            4 * mm,
-            colors.HexColor("#151515"),
-            2
-        )
-
-        if len(block) > 1:
-
-            y = draw_wrapped(
-                c,
-                block[1],
-                x + 3 * mm,
-                y - 1 * mm,
-                width - 3 * mm,
-                "Helvetica-Bold",
-                7.5,
-                3.5 * mm,
-                colors.HexColor("#9A6900"),
-                2
-            )
-
-        for line in block[2:]:
-
-            clean = line.lstrip("-• ").strip()
-
-            if clean:
-
-                y = draw_wrapped(
-                    c,
-                    "• " + clean,
-                    x + 3 * mm,
-                    y - 1 * mm,
-                    width - 3 * mm,
-                    "Helvetica",
-                    7.5,
-                    3.5 * mm,
-                    colors.HexColor("#555555"),
-                    3
-                )
-
-        y -= 4 * mm
-
-    return y
-
-
-def make_pdf():
-
-    buffer = BytesIO()
-
-    page_width, page_height = A4
-
-    c = canvas.Canvas(
-        buffer,
-        pagesize=A4
-    )
-
-    accent = colors.HexColor("#FFC107")
-    dark = colors.HexColor("#151515")
-
-    sidebar_width = 70 * mm
-
-    # Background
-    c.setFillColor(colors.white)
-
-    c.rect(
-        0,
-        0,
-        page_width,
-        page_height,
-        fill=1,
-        stroke=0
-    )
-
-    # Sidebar
-    c.setFillColor(dark)
-
-    c.rect(
-        0,
-        0,
-        sidebar_width,
-        page_height,
-        fill=1,
-        stroke=0
-    )
-
-    # Yellow geometric sidebar header
-    path = c.beginPath()
-
-    path.moveTo(
-        0,
-        page_height
-    )
-
-    path.lineTo(
-        sidebar_width,
-        page_height
-    )
-
-    path.lineTo(
-        sidebar_width,
-        page_height - 58 * mm
-    )
-
-    path.lineTo(
-        31 * mm,
-        page_height - 86 * mm
-    )
-
-    path.lineTo(
-        0,
-        page_height - 68 * mm
-    )
-
-    path.close()
-
-    c.setFillColor(accent)
-
-    c.drawPath(
-        path,
-        fill=1,
-        stroke=0
-    )
-
-    # Main geometric top
-    path2 = c.beginPath()
-
-    path2.moveTo(
-        page_width - 42 * mm,
-        page_height
-    )
-
-    path2.lineTo(
-        page_width,
-        page_height
-    )
-
-    path2.lineTo(
-        page_width,
-        page_height - 30 * mm
-    )
-
-    path2.lineTo(
-        page_width - 58 * mm,
-        page_height - 30 * mm
-    )
-
-    path2.close()
-
-    c.setFillColor(dark)
-
-    c.drawPath(
-        path2,
-        fill=1,
-        stroke=0
-    )
-
-    main_x = sidebar_width + 12 * mm
-
-    main_width = (
-        page_width
-        - main_x
-        - 12 * mm
-    )
-
-    y = page_height - 25 * mm
-
-    name = (
-        st.session_state.name.strip()
-        or "YOUR NAME"
-    ).upper()
-
-    role = (
-        st.session_state.role.strip()
-        or "PROFESSIONAL TITLE"
-    )
-
-    c.setFillColor(dark)
-
-    y = draw_wrapped(
-        c,
-        name,
-        main_x,
-        y,
-        main_width,
-        "Helvetica-Bold",
-        21,
-        9 * mm,
-        dark,
-        2
-    )
-
-    c.setFillColor(accent)
-
-    c.setFont(
-        "Helvetica-Bold",
-        8.5
-    )
-
-    c.drawString(
-        main_x,
-        y - 2 * mm,
-        role[:70]
-    )
-
-    y -= 16 * mm
-
-    if st.session_state.summary.strip():
-
-        c.setFillColor(dark)
-
-        c.setFont(
-            "Helvetica-Bold",
-            12
-        )
-
-        c.drawString(
-            main_x,
-            y,
-            "ABOUT ME"
-        )
-
-        y -= 3 * mm
-
-        c.setStrokeColor(accent)
-
-        c.setLineWidth(2)
-
-        c.line(
-            main_x,
-            y,
-            main_x + main_width,
-            y
-        )
-
-        y -= 7 * mm
-
-        y = draw_wrapped(
-            c,
-            st.session_state.summary,
-            main_x,
-            y,
-            main_width,
-            "Helvetica",
-            7.5,
-            3.6 * mm,
-            colors.HexColor("#555555"),
-            8
-        )
-
-        y -= 5 * mm
-
-    y = draw_pdf_section(
-        c,
-        "Education",
-        st.session_state.education,
-        main_x,
-        y,
-        main_width,
-        accent
-    )
-
-    y -= 2 * mm
-
-    y = draw_pdf_section(
-        c,
-        "Experience",
-        st.session_state.experience,
-        main_x,
-        y,
-        main_width,
-        accent
-    )
-
-    y -= 2 * mm
-
-    y = draw_pdf_section(
-        c,
-        "Projects",
-        st.session_state.projects,
-        main_x,
-        y,
-        main_width,
-        accent
-    )
-
-    # Sidebar content
-    side_x = 8 * mm
-    side_center = sidebar_width / 2
-
-    photo_size = 47 * mm
-    photo_x = side_center - photo_size / 2
-    photo_y = page_height - 59 * mm
-
-    if st.session_state.photo:
-
-        try:
-
-            img = Image.open(
-                BytesIO(
-                    st.session_state.photo
-                )
-            ).convert("RGB")
-
-            img_buffer = BytesIO()
-
-            img.save(
-                img_buffer,
-                format="JPEG",
-                quality=95
-            )
-
-            img_buffer.seek(0)
-
-            c.drawImage(
-                ImageReader(img_buffer),
-                photo_x,
-                photo_y,
-                width=photo_size,
-                height=photo_size,
-                preserveAspectRatio=True,
-                anchor="c",
-                mask="auto"
-            )
-
-        except Exception:
-            pass
-
-    side_y = page_height - 70 * mm
-
-    c.setFillColor(colors.white)
-
-    c.setFont(
-        "Helvetica-Bold",
-        9
-    )
-
-    c.drawCentredString(
-        side_center,
-        side_y,
-        (
-            st.session_state.name
-            or "YOUR NAME"
-        )[:28]
-    )
-
-    side_y -= 6 * mm
-
-    c.setFillColor(accent)
-
-    c.setFont(
-        "Helvetica-Bold",
-        6.8
-    )
-
-    c.drawCentredString(
-        side_center,
-        side_y,
-        (
-            st.session_state.role
-            or "PROFESSIONAL TITLE"
-        )[:38]
-    )
-
-    side_y -= 13 * mm
-
-    c.setFillColor(accent)
-
-    c.setFont(
-        "Helvetica-Bold",
-        8.5
-    )
-
-    c.drawString(
-        side_x,
-        side_y,
-        "CONTACT"
-    )
-
-    side_y -= 6 * mm
-
-    for value in [
-        st.session_state.email,
-        st.session_state.phone,
-        st.session_state.location,
-        st.session_state.linkedin,
-        st.session_state.website
-    ]:
-
-        if value and value.strip():
-
-            side_y = draw_wrapped(
-                c,
-                value,
-                side_x,
-                side_y,
-                sidebar_width - 16 * mm,
-                "Helvetica",
-                6.5,
-                3.2 * mm,
-                colors.HexColor("#E5E7EB"),
-                2
-            )
-
-            side_y -= 2 * mm
-
-    parsed_skills = parse_skills(
-        st.session_state.skills
-    )
-
-    if parsed_skills:
-
-        side_y -= 4 * mm
-
-        c.setFillColor(accent)
-
-        c.setFont(
-            "Helvetica-Bold",
-            8.5
-        )
-
-        c.drawString(
-            side_x,
-            side_y,
-            "SKILLS"
-        )
-
-        side_y -= 6 * mm
-
-        track_width = sidebar_width - 16 * mm
-
-        for skill_name, percent in parsed_skills[:8]:
-
-            c.setFillColor(colors.white)
-
-            c.setFont(
-                "Helvetica",
-                6.8
-            )
-
-            c.drawString(
-                side_x,
-                side_y,
-                skill_name[:25]
-            )
-
-            c.setFillColor(
-                colors.HexColor("#777777")
-            )
-
-            c.drawRightString(
-                sidebar_width - 8 * mm,
-                side_y,
-                f"{percent}%"
-            )
-
-            side_y -= 3.5 * mm
-
-            c.setFillColor(
-                colors.HexColor("#444444")
-            )
-
-            c.roundRect(
-                side_x,
-                side_y,
-                track_width,
-                1.3 * mm,
-                .7 * mm,
-                fill=1,
-                stroke=0
-            )
-
-            c.setFillColor(accent)
-
-            c.roundRect(
-                side_x,
-                side_y,
-                track_width * percent / 100,
-                1.3 * mm,
-                .7 * mm,
-                fill=1,
-                stroke=0
-            )
-
-            side_y -= 6 * mm
-
-    if st.session_state.languages.strip():
-
-        side_y -= 2 * mm
-
-        c.setFillColor(accent)
-
-        c.setFont(
-            "Helvetica-Bold",
-            8.5
-        )
-
-        c.drawString(
-            side_x,
-            side_y,
-            "LANGUAGES"
-        )
-
-        side_y -= 6 * mm
-
-        for line in st.session_state.languages.splitlines():
-
-            if line.strip():
-
-                side_y = draw_wrapped(
-                    c,
-                    "• " + line.strip(),
-                    side_x,
-                    side_y,
-                    sidebar_width - 16 * mm,
-                    "Helvetica",
-                    6.8,
-                    3.2 * mm,
-                    colors.HexColor("#E5E7EB"),
-                    2
-                )
-
-                side_y -= 1.5 * mm
-
-    if st.session_state.certifications.strip():
-
-        side_y -= 2 * mm
-
-        c.setFillColor(accent)
-
-        c.setFont(
-            "Helvetica-Bold",
-            8.5
-        )
-
-        c.drawString(
-            side_x,
-            side_y,
-            "CERTIFICATIONS"
-        )
-
-        side_y -= 6 * mm
-
-        for line in st.session_state.certifications.splitlines():
-
-            if line.strip():
-
-                side_y = draw_wrapped(
-                    c,
-                    "• " + line.strip(),
-                    side_x,
-                    side_y,
-                    sidebar_width - 16 * mm,
-                    "Helvetica",
-                    6.8,
-                    3.2 * mm,
-                    colors.HexColor("#E5E7EB"),
-                    2
-                )
-
-                side_y -= 1.5 * mm
-
-    c.save()
-
-    buffer.seek(0)
-
-    return buffer.getvalue()
-
-
-# =========================================================
-# PDF DOWNLOAD
-# =========================================================
-
-st.divider()
-
-st.markdown("### 📥 Download")
-
-if st.button(
-    "Generate Professional PDF",
-    use_container_width=True
-):
-
+        c.setFillColor(colors.HexColor("#151515"));c.setFont("Helvetica-Bold",10);c.drawString(mx,y,"ABOUT ME");y-=2.5*mm
+        c.setStrokeColor(a);c.line(mx,y,mx+mw,y);y-=5*mm
+        y=drawwrap(c,st.session_state.summary,mx,y,mw,"Helvetica",7,3.2*mm,colors.HexColor("#555"),6)-2*mm
+    def section(title,text):
+        nonlocal y
+        if not text.strip():return
+        c.setFillColor(colors.HexColor("#151515"));c.setFont("Helvetica-Bold",9.5);c.drawString(mx,y,title);y-=2.5*mm
+        c.setStrokeColor(a);c.line(mx,y,mx+mw,y);y-=5*mm
+        for b in blocks(text):
+            if y<18*mm:return
+            c.setStrokeColor(a);c.setLineWidth(1);c.line(mx,y+1*mm,mx,y-9*mm)
+            c.setFillColor(colors.HexColor("#151515"));c.setFont("Helvetica-Bold",7.8);c.drawString(mx+3*mm,y,b[0][:70]);y-=3.2*mm
+            if len(b)>1:
+                c.setFillColor(colors.HexColor("#9a6900"));c.setFont("Helvetica-Bold",6.5);c.drawString(mx+3*mm,y,b[1][:65]);y-=3.2*mm
+            for x in b[2:]:
+                y=drawwrap(c,"• "+x.lstrip("-• ").strip(),mx+3*mm,y,mw-3*mm,"Helvetica",6.5,2.8*mm,colors.HexColor("#555"),2)
+            y-=2*mm
+    section("EDUCATION",st.session_state.education)
+    section("EXPERIENCE",st.session_state.experience)
+    section("PROJECTS",st.session_state.projects)
+    c.setFillColor(colors.HexColor("#888"));c.setFont("Helvetica",5);c.drawRightString(pw-10*mm,5*mm,"CV Automator Premium")
+    c.showPage();c.save();buf.seek(0);return buf.getvalue()
+
+if st.button("📄 Generate Professional PDF",use_container_width=True):
     try:
-
-        pdf_data = make_pdf()
-
-        filename = (
-            st.session_state.name.strip()
-            .replace(" ", "_")
-            or "CV"
-        ) + ".pdf"
-
-        st.download_button(
-            "⬇️ Download CV PDF",
-            data=pdf_data,
-            file_name=filename,
-            mime="application/pdf",
-            use_container_width=True
-        )
-
-    except Exception as exc:
-
-        st.error(
-            f"PDF generation failed: {exc}"
-        )
-
-
-st.markdown(
-    '''
-    <div style="
-        text-align:center;
-        color:#6b7280;
-        padding:30px 0 10px;
-        font-size:12px;
-    ">
-        CV Automator Premium • Modern Geometric CV Builder
-    </div>
-    ''',
-    unsafe_allow_html=True
-)
+        data=pdf()
+        st.download_button("⬇️ Download CV PDF",data=data,
+            file_name=(st.session_state.name.strip().replace(" ","_") or "CV")+".pdf",
+            mime="application/pdf",use_container_width=True)
+        st.success("Single-page A4 PDF created.")
+    except Exception as e: st.error(f"PDF generation failed: {e}")
