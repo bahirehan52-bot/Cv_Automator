@@ -79,7 +79,7 @@ display:flex;align-items:center;justify-content:center;font-size:48px;border:6px
 box-shadow:0 0 0 4px var(--a)}.sname{text-align:center;font-size:19px;font-weight:900}.role{
 text-align:center;color:var(--a);font-size:9px;font-weight:800;letter-spacing:1px;margin:6px 0 18px}
 .sh{color:var(--a);font-size:9px;font-weight:900;letter-spacing:1.5px;border-left:3px solid var(--a);
-padding-left:7px;margin:14px 0 7px}.st{font-size:8px;line-height:1.4;color:#e5e7eb;margin:3px 0;
+padding-left:7px;margin:14px 0 7px}.st{font-size:8px;line-height:1.4;color: #38BDF8;margin:3px 0;
 word-break:break-word}.skill{margin:6px 0}.skillhead{display:flex;justify-content:space-between;
 font-size:8px;font-weight:700}.track{height:4px;background:#ffffff22;border-radius:5px;margin-top:3px}
 .bar{height:100%;background:var(--a);border-radius:5px}.mn{font-size:31px;font-weight:900;
