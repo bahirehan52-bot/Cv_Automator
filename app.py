@@ -13,7 +13,7 @@ import streamlit.components.v1 as components
 # Google AdSense verification
 # Apna Google-provided code yahan paste karna
 ADSENSE_CODE = """
-<meta name="google-adsense-account" content="ca-pub-1446156185635090"> -->
+<meta name="google-adsense-account" content="ca-pub-1446156185635090">
 """
 
 # Existing Streamlit app continues below
