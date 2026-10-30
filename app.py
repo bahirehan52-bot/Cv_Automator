@@ -8,6 +8,15 @@ from reportlab.lib import colors
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
+import streamlit.components.v1 as components
+
+# Google AdSense verification
+# Apna Google-provided code yahan paste karna
+ADSENSE_CODE = """
+<meta name="google-adsense-account" content="ca-pub-1446156185635090"> -->
+"""
+
+# Existing Streamlit app continues below
 
 st.set_page_config(page_title="CV Automator Premium", page_icon="📄", layout="wide")
 
